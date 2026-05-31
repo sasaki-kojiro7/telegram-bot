@@ -1,3 +1,20 @@
+current_category = None
+from telegram.ext import CommandHandler
+
+async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    global current_category
+
+    if not context.args:
+        await update.message.reply_text(
+            "استفاده:\n/set اسم_دسته"
+        )
+        return
+
+    current_category = context.args[0]
+
+    await update.message.reply_text(
+        f"✅ دسته فعال شد: {current_category}"
+    )
 from telegram.ext import MessageHandler, filters
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
@@ -102,6 +119,8 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # 🚀 RUN BOT
 app = Application.builder().token(TOKEN).build()
+
+app.add_handler(CommandHandler("set", set_category))
 
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
