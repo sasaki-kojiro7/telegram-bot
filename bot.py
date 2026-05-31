@@ -1,4 +1,6 @@
 current_category = None
+from telegram import Update
+from telegram.ext import ContextTypes
 from telegram.ext import CommandHandler
 
 async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
