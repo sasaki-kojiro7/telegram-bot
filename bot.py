@@ -135,10 +135,21 @@ async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, cate
         await update.message.reply_text("❌ این دسته خالیه")
         return
 
-    for f in files:
-        file_path = os.path.join(path, f)
-        with open(file_path, "rb") as photo:
-            await update.message.reply_photo(photo=photo)
+   from telegram import InputMediaPhoto
+import os
+
+# ساخت لیست Media
+media = []
+
+for f in files[:10]:  # فقط 10 تا اول (محدودیت تلگرام)
+    file_path = os.path.join(path, f)
+    media.append(InputMediaPhoto(open(file_path, "rb")))
+
+# ارسال آلبوم
+await context.bot.send_media_group(
+    chat_id=update.effective_chat.id,
+    media=media
+)
 
 
 # 🚀 RUN BOT
