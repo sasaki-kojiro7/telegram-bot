@@ -1,50 +1,41 @@
-current_category = None
-from telegram import Update
-from telegram.ext import ContextTypes
-from telegram.ext import CommandHandler
-
-async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    global current_category
-
-    if not context.args:
-        await update.message.reply_text(
-            "استفاده:\n/set اسم_دسته"
-        )
-        return
-
-    current_category = context.args[0]
-
-    await update.message.reply_text(
-        f"✅ دسته فعال شد: {current_category}"
-    )
-from telegram.ext import MessageHandler, filters
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    ContextTypes,
+    filters
+)
 
 # ================= CONFIG =================
 TOKEN = "8913519612:AAGwQY8FDd9uzYAazdKizk9POtXhZgpjW14"
-
 CHANNEL_1 = -1003967540137
 CHANNEL_2 = -1004293009722
-
 CHANNEL_LINK_1 = "https://t.me/+XXXXXXX1"
 CHANNEL_LINK_2 = "https://t.me/+XXXXXXX2"
 # =========================================
 
 
-# 🚀 START
+# 🚀 START (deep link support)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    # اگر از کانال اومده (مثلا ana_photos)
+    if context.args:
+        category = context.args[0]
+        await send_category(update, context, category)
+        return
+
     keyboard = [
-    [
-        InlineKeyboardButton("📷 تصاویر", callback_data="photos"),
-        InlineKeyboardButton("🎥 ویدیو", callback_data="video")
-    ],
-    [
-        InlineKeyboardButton("📢 عضویت در کانال‌ها", callback_data="join"),
-        InlineKeyboardButton("✅ بررسی عضویت", callback_data="check")
+        [
+            InlineKeyboardButton("📷 تصاویر", callback_data="photos"),
+            InlineKeyboardButton("🎥 ویدیو", callback_data="video")
+        ],
+        [
+            InlineKeyboardButton("📢 عضویت در کانال‌ها", callback_data="join"),
+            InlineKeyboardButton("✅ بررسی عضویت", callback_data="check")
+        ]
     ]
-]
 
     reply_markup = InlineKeyboardMarkup(keyboard)
 
@@ -56,78 +47,103 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # 🎛 BUTTON HANDLER
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
     query = update.callback_query
     await query.answer()
 
-    # 📷 Photos
     if query.data == "photos":
-        await query.message.reply_text("📷 فعلاً عکس‌ها آماده نیست 😎")
+        await query.message.reply_text("📷 برای دیدن دسته‌ها /start دسته_اسم بزن")
 
-    # 🎥 Video
     elif query.data == "video":
         await query.message.reply_text("🎥 فعلاً ویدیو آماده نیست 😎")
 
-    # 📢 Join channels
     elif query.data == "join":
-
         keyboard = [
-            [InlineKeyboardButton("🔥 کانال فیلم", url=CHANNEL_LINK_1),
-            InlineKeyboardButton("🎬 کانال VIP", url=CHANNEL_LINK_2)]
+            [
+                InlineKeyboardButton("🔥 کانال فیلم", url=CHANNEL_LINK_1),
+                InlineKeyboardButton("🎬 کانال VIP", url=CHANNEL_LINK_2)
+            ]
         ]
-
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
         await query.message.reply_text(
-            "📢 برای دسترسی به محتوا در کانال‌ها عضو شوید:",
-            reply_markup=reply_markup
+            "📢 برای دسترسی عضو شوید:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-    # ✅ Check membership
     elif query.data == "check":
-
         user_id = query.from_user.id
-
         try:
-            member1 = await context.bot.get_chat_member(CHANNEL_1, user_id)
-            member2 = await context.bot.get_chat_member(CHANNEL_2, user_id)
+            m1 = await context.bot.get_chat_member(CHANNEL_1, user_id)
+            m2 = await context.bot.get_chat_member(CHANNEL_2, user_id)
 
-            ok1 = member1.status in ["member", "administrator", "creator"]
-            ok2 = member2.status in ["member", "administrator", "creator"]
+            ok1 = m1.status in ["member", "administrator", "creator"]
+            ok2 = m2.status in ["member", "administrator", "creator"]
 
             if ok1 and ok2:
-                await query.message.reply_text("✅ عضویت شما تایید شد!")
+                await query.message.reply_text("✅ تایید شد")
             else:
-                await query.message.reply_text("بچه کونی عضو شو دیگه 🤓☝🏻")
-
+                await query.message.reply_text("❌ عضو کانال‌ها نیستی")
         except Exception as e:
             await query.message.reply_text(f"⚠️ خطا:\n{e}")
 
+
+# 🟢 SET CATEGORY (اصلاح شده)
+async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not context.args:
+        await update.message.reply_text("استفاده: /set ana_photos")
+        return
+
+    context.user_data["category"] = context.args[0]
+
+    await update.message.reply_text(
+        f"✅ دسته فعال شد: {context.user_data['category']}\n\n"
+        "حالا عکس بفرست"
+    )
+
+
+# 📸 SAVE MEDIA (اصلاح شده + واقعی)
+import os
+
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    category = context.user_data.get("category")
+
+    if not category:
+        await update.message.reply_text("❗️ اول /set بزن و دسته انتخاب کن")
+        return
+
+    # PHOTO
     if update.message.photo:
-        file_id = update.message.photo[-1].file_id
+        file = await context.bot.get_file(update.message.photo[-1].file_id)
 
-        await update.message.reply_text(
-            f"📷 Photo ID:\n\n{file_id}"
-        )
+        path = f"photos/{category}"
+        os.makedirs(path, exist_ok=True)
 
-    elif update.message.video:
-        file_id = update.message.video.file_id
+        file_path = f"{path}/{update.message.photo[-1].file_id}.jpg"
+        await file.download_to_drive(file_path)
 
-        await update.message.reply_text(
-            f"🎥 Video ID:\n\n{file_id}"
-        )
+        await update.message.reply_text("✅ عکس ذخیره شد")
+
+
+# 📂 SEND CATEGORY (گالری ساده)
+async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, category):
+
+    path = f"photos/{category}"
+
+    if not os.path.exists(path):
+        await update.message.reply_text("❌ چیزی پیدا نشد")
+        return
+
+    files = os.listdir(path)
+
+for f in files:
+        await update.message.reply_photo(photo=open(f"{path}/{f}", "rb"))
+
 
 # 🚀 RUN BOT
 app = Application.builder().token(TOKEN).build()
 
-app.add_handler(CommandHandler("set", set_category))
-
 app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("set", set_category))
 app.add_handler(CallbackQueryHandler(button))
+app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, save_media))
 
-app.add_handler(
-    MessageHandler(filters.PHOTO | filters.VIDEO, save_media)
-)
 app.run_polling()
