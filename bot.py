@@ -1,3 +1,4 @@
+from telegram import InputMediaPhoto
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application,
@@ -135,7 +136,7 @@ async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, cate
         await update.message.reply_text("❌ این دسته خالیه")
         return
 
-   from telegram import InputMediaPhoto
+   
 import os
 
 # ساخت لیست Media
