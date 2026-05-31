@@ -53,8 +53,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "join":
 
         keyboard = [
-            [InlineKeyboardButton("🔥 کانال فیلم", url=CHANNEL_LINK_1)],
-            [InlineKeyboardButton("🎬 کانال VIP", url=CHANNEL_LINK_2)]
+            [InlineKeyboardButton("🔥 کانال فیلم", url=CHANNEL_LINK_1),
+            InlineKeyboardButton("🎬 کانال VIP", url=CHANNEL_LINK_2)]
         ]
 
         reply_markup = InlineKeyboardMarkup(keyboard)
