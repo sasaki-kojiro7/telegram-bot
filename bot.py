@@ -122,10 +122,7 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text("✅ عکس ذخیره شد")
 
-
-# 📂 SEND CATEGORY (گالری ساده)
 async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, category):
-
     path = f"photos/{category}"
 
     if not os.path.exists(path):
@@ -134,8 +131,14 @@ async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, cate
 
     files = os.listdir(path)
 
-for f in files:
-        await update.message.reply_photo(photo=open(f"{path}/{f}", "rb"))
+    if not files:
+        await update.message.reply_text("❌ این دسته خالیه")
+        return
+
+    for f in files:
+        file_path = os.path.join(path, f)
+        with open(file_path, "rb") as photo:
+            await update.message.reply_photo(photo=photo)
 
 
 # 🚀 RUN BOT
