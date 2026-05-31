@@ -1,5 +1,10 @@
-from telegram import InputMediaPhoto
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import (
+    Update,
+    InlineKeyboardButton,
+    InlineKeyboardMarkup,
+    InputMediaPhoto
+)
+
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -9,6 +14,20 @@ from telegram.ext import (
     filters
 )
 
+import os
+import sqlite3
+conn = sqlite3.connect("bot.db", check_same_thread=False)
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS photos (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    category TEXT,
+    file_id TEXT
+)
+""")
+
+conn.commit()
 # ================= CONFIG =================
 TOKEN = "8913519612:AAGwQY8FDd9uzYAazdKizk9POtXhZgpjW14"
 CHANNEL_1 = -1003967540137
