@@ -124,6 +124,7 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ عکس ذخیره شد")
 
 async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, category):
+
     path = f"photos/{category}"
 
     if not os.path.exists(path):
@@ -136,22 +137,16 @@ async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, cate
         await update.message.reply_text("❌ این دسته خالیه")
         return
 
-   
-import os
+    media = []
 
-# ساخت لیست Media
-media = []
+    for f in files[:10]:
+        file_path = os.path.join(path, f)
+        media.append(InputMediaPhoto(open(file_path, "rb")))
 
-for f in files[:10]:  # فقط 10 تا اول (محدودیت تلگرام)
-    file_path = os.path.join(path, f)
-    media.append(InputMediaPhoto(open(file_path, "rb")))
-
-# ارسال آلبوم
-await context.bot.send_media_group(
-    chat_id=update.effective_chat.id,
-    media=media
-)
-
+    await context.bot.send_media_group(
+        chat_id=update.effective_chat.id,
+        media=media
+    )
 
 # 🚀 RUN BOT
 app = Application.builder().token(TOKEN).build()
