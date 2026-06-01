@@ -130,7 +130,7 @@ from telegram import InputMediaPhoto, InputMediaVideo
 
 from telegram import InputMediaPhoto, InputMediaVideo
 
-async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, category):
+async def send_category(update, context, category):
 
     cursor.execute(
         "SELECT file_id, type FROM media WHERE category=?",
@@ -157,8 +157,6 @@ async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, cate
         chat_id=update.effective_chat.id,
         media=media_group
     )
-    rows = cursor.fetchall()
-
     if not rows:
         await update.message.reply_text("❌ چیزی پیدا نشد")
         return
@@ -225,30 +223,7 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text("✅ ویدیو ذخیره شد")
 
-async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, category):
 
-    path = f"photos/{category}"
-
-    if not os.path.exists(path):
-        await update.message.reply_text("❌ چیزی پیدا نشد")
-        return
-
-    files = os.listdir(path)
-
-    if not files:
-        await update.message.reply_text("❌ این دسته خالیه")
-        return
-
-    media = []
-
-    for f in files[:10]:
-        file_path = os.path.join(path, f)
-        media.append(InputMediaPhoto(open(file_path, "rb")))
-
-    await context.bot.send_media_group(
-        chat_id=update.effective_chat.id,
-        media=media
-    )
 
 # 🚀 RUN BOT
 app = Application.builder().token(TOKEN).build()
