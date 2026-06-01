@@ -128,11 +128,34 @@ import os
 
 from telegram import InputMediaPhoto, InputMediaVideo
 
+from telegram import InputMediaPhoto, InputMediaVideo
+
 async def send_category(update: Update, context: ContextTypes.DEFAULT_TYPE, category):
 
     cursor.execute(
         "SELECT file_id, type FROM media WHERE category=?",
         (category,)
+    )
+
+    rows = cursor.fetchall()
+
+    if not rows:
+        await update.message.reply_text("❌ چیزی پیدا نشد")
+        return
+
+    media_group = []
+
+    for file_id, media_type in rows:
+
+        if media_type == "photo":
+            media_group.append(InputMediaPhoto(file_id))
+
+        elif media_type == "video":
+            media_group.append(InputMediaVideo(file_id))
+
+    await context.bot.send_media_group(
+        chat_id=update.effective_chat.id,
+        media=media_group
     )
     rows = cursor.fetchall()
 
@@ -173,6 +196,20 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
             (category, file_id, "photo")
         )
         conn.commit()
+
+        await update.message.reply_text("✅ عکس ذخیره شد")
+
+    # VIDEO (این بخش رو اضافه کن)
+    elif update.message.video:
+        file_id = update.message.video.file_id
+
+        cursor.execute(
+            "INSERT INTO media (category, file_id, type) VALUES (?, ?, ?)",
+            (category, file_id, "video")
+        )
+        conn.commit()
+
+        await update.message.reply_text("✅ ویدیو ذخیره شد")
 
         await update.message.reply_text("✅ عکس ذخیره شد")
 
