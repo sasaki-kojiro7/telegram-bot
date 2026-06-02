@@ -21,8 +21,7 @@ import time
 conn = sqlite3.connect("bot.db", check_same_thread=False)
 cursor = conn.cursor()
 
-cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (6503127920,))
-conn.commit()
+
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS admins (
