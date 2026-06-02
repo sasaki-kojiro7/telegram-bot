@@ -125,10 +125,18 @@ async def get_active_channels():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    # 🔒 چک عضویت اول
+    user_id = update.effective_user.id
+    ok = await check_membership(context.bot, user_id)
+
+    if not ok:
+        await send_join_gate(update, context)
+        return
+
+    # 🔥 دریافت دسته از لینک /start
     text = update.message.text or ""
     parts = text.split()
 
-    # 🔥 اگر لینک یا /start با دسته بود
     if len(parts) > 1:
         category = parts[1].strip()
         await send_category(update, context, category)
@@ -142,7 +150,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ],
         [
             InlineKeyboardButton("📢 عضویت در کانال‌ها", callback_data="join"),
-            InlineKeyboardButton("✅ بررسی عضویت", callback_data="check")
+            InlineKeyboardButton("✅ بررسی عضویت", callback_data="check_membership")
         ]
     ]
 
@@ -163,50 +171,107 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data == "join":
 
-        keyboard = [[
-            InlineKeyboardButton("🔥 کانال فیلم", url=CHANNEL_LINK_1),
-            InlineKeyboardButton("🎬 کانال VIP", url=CHANNEL_LINK_2)
-        ]]
+        channels = await get_active_channels()
+
+        keyboard = []
+
+        for ch in channels:
+            if ch.startswith("@"):
+                url = f"https://t.me/{ch[1:]}"
+            else:
+                url = ch  # invite link
+
+            keyboard.append([
+                InlineKeyboardButton("🔥 عضویت در کانال", url=url)
+            ])
+
+        keyboard.append([
+            InlineKeyboardButton("✅ عضو شدم", callback_data="check_membership")
+        ])
 
         await query.message.reply_text(
-            "📢 برای دسترسی عضو شوید:",
+            "📢 برای دسترسی باید عضو کانال‌ها بشی:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
-    elif query.data == "check":
+    elif query.data == "check_membership":
 
-        user_id = query.from_user.id
-
-        # 🔥 یکپارچه با سیستم دیتابیس خودت
-        ok = await check_membership(context.bot, user_id)
+        ok = await check_membership(context.bot, query.from_user.id)
 
         if ok:
+            await query.message.delete()
             await query.message.reply_text("✅ تایید شد")
         else:
-            await query.message.reply_text("❌ عضو کانال‌ها نیستی")
+            await query.answer("❌ هنوز عضو نشدی", show_alert=True)
 
-async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if not context.args:
-        await update.message.reply_text("استفاده: /set ana_photos")
+async def send_join_gate(update, context):
+
+    channels = await get_active_channels()
+
+    if not channels:
+        await update.message.reply_text("❗️ هیچ کانالی تنظیم نشده")
         return
 
-    context.user_data["category"] = context.args[0]
+    keyboard = []
+
+    for ch in channels:
+
+        # اگر username داری
+        if ch.startswith("@"):
+            url = f"https://t.me/{ch[1:]}"
+        else:
+            # اگر invite link داری
+            url = ch
+
+        keyboard.append([
+            InlineKeyboardButton("📢 عضویت در کانال", url=url)
+        ])
+
+    keyboard.append([
+        InlineKeyboardButton("✅ عضو شدم", callback_data="check_membership")
+    ])
 
     await update.message.reply_text(
-        f"✅ دسته فعال شد: {context.user_data['category']}\n\nحالا عکس یا ویدیو بفرست"
+        "❗️ برای استفاده از ربات باید عضو کانال‌های زیر بشی:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 
 async def send_category(update, context, category):
 
-    # 🔒 چک عضویت (مهم‌ترین قسمت)
-    ok = await check_membership(context.bot, update.effective_user.id)
+    user_id = update.effective_user.id
+
+    # 🔒 چک عضویت
+    ok = await check_membership(context.bot, user_id)
 
     if not ok:
-        await update.message.reply_text("❗️ اول عضو کانال‌ها شو")
+
+        channels = await get_active_channels()
+
+        keyboard = []
+
+        for ch in channels:
+            if ch.startswith("@"):
+                url = f"https://t.me/{ch[1:]}"
+            else:
+                url = ch  # invite link
+
+            keyboard.append([
+                InlineKeyboardButton("📢 عضویت در کانال", url=url)
+            ])
+
+        keyboard.append([
+            InlineKeyboardButton("✅ عضو شدم", callback_data="check_membership")
+        ])
+
+        await update.message.reply_text(
+            "❗️ برای دریافت فایل باید عضو کانال‌های زیر بشی:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
         return
 
+    # 📦 گرفتن فایل‌ها
     cursor.execute(
         "SELECT file_id, type FROM media WHERE category=?",
         (category,)
@@ -228,6 +293,7 @@ async def send_category(update, context, category):
         elif media_type == "video":
             media_group.append(InputMediaVideo(file_id))
 
+    # 📤 ارسال
     await context.bot.send_media_group(
         chat_id=update.effective_chat.id,
         media=media_group
