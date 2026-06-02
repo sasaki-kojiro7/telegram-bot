@@ -105,12 +105,22 @@ async def list_channels(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if len(context.args) < 2:
-        await update.message.reply_text("استفاده: /addchannel id 24")
+    # 🔒 قفل ادمین
+    if not await is_admin(update.effective_user.id):
+        await update.message.reply_text("⛔ دسترسی نداری")
         return
 
-    chat_id = context.args[0]
-    hours = int(context.args[1])
+    if len(context.args) < 2:
+        await update.message.reply_text("استفاده: /addchannel @id 24")
+        return
+
+    chat_id = context.args[0].strip()
+
+    try:
+        hours = int(context.args[1])
+    except ValueError:
+        await update.message.reply_text("❗️ ساعت باید عدد باشه")
+        return
 
     expire = int(time.time()) + hours * 3600
 
@@ -324,11 +334,16 @@ async def send_category(update, context, category):
 
 async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if not context.args:
-        await update.message.reply_text("استفاده: /removechannel id")
+    # 🔒 قفل ادمین
+    if not await is_admin(update.effective_user.id):
+        await update.message.reply_text("⛔ دسترسی نداری")
         return
 
-    chat_id = context.args[0]
+    if not context.args:
+        await update.message.reply_text("استفاده: /removechannel @id")
+        return
+
+    chat_id = context.args[0].strip()
 
     cursor.execute("DELETE FROM channels WHERE chat_id = ?", (chat_id,))
     conn.commit()
@@ -338,19 +353,29 @@ async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    # 🔒 قفل ادمین
+    if not await is_admin(update.effective_user.id):
+        await update.message.reply_text("⛔ دسترسی نداری")
+        return
+
     if not context.args:
         await update.message.reply_text("استفاده: /set ana_photos")
         return
 
-    context.user_data["category"] = context.args[0]
+    category = context.args[0].strip()
+    context.user_data["category"] = category
 
     await update.message.reply_text(
-        f"✅ دسته فعال شد: {context.user_data['category']}\n\n"
+        f"✅ دسته فعال شد: {category}\n\n"
         "حالا عکس یا ویدیو بفرست"
     )
 
 
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    # 🔒 قفل ادمین
+    if not await is_admin(update.effective_user.id):
+        return  # یا می‌تونی پیام بدی: "⛔ دسترسی نداری"
 
     category = context.user_data.get("category")
 
@@ -358,6 +383,7 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❗️ اول /set بزن و دسته انتخاب کن")
         return
 
+    # 📷 عکس
     if update.message.photo:
 
         file_id = update.message.photo[-1].file_id
@@ -370,6 +396,7 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text("✅ عکس ذخیره شد")
 
+    # 🎥 ویدیو
     elif update.message.video:
 
         file_id = update.message.video.file_id
@@ -381,7 +408,6 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
         conn.commit()
 
         await update.message.reply_text("✅ ویدیو ذخیره شد")
-
 
 app = Application.builder().token(TOKEN).build()
 
