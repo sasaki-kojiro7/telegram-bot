@@ -313,6 +313,20 @@ async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("🗑 کانال حذف شد")
 
 
+async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not context.args:
+        await update.message.reply_text("استفاده: /set ana_photos")
+        return
+
+    context.user_data["category"] = context.args[0]
+
+    await update.message.reply_text(
+        f"✅ دسته فعال شد: {context.user_data['category']}\n\n"
+        "حالا عکس یا ویدیو بفرست"
+    )
+
+
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     category = context.user_data.get("category")
