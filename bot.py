@@ -57,10 +57,13 @@ async def check_membership(bot, user_id):
     for channel in channels:
         try:
             member = await bot.get_chat_member(channel, user_id)
+
             if member.status not in ["member", "administrator", "creator"]:
                 return False
-        except:
-            return False
+
+        except Exception as e:
+            print(f"Channel check error: {channel} -> {e}")
+            continue
 
     return True
 
