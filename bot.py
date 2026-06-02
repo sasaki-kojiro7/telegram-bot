@@ -194,10 +194,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 📷 photos
     if query.data == "photos":
         await query.message.reply_text("📷 برای دیدن دسته‌ها /start دسته_اسم بزن")
+        return
 
     # 🎥 video
     elif query.data == "video":
         await query.message.reply_text("🎥 فعلاً ویدیو آماده نیست 😎")
+        return
 
     # 📢 join channels
     elif query.data == "join":
@@ -211,11 +213,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = []
 
         for ch in channels:
-
-            if ch.startswith("@"):
-                url = f"https://t.me/{ch[1:]}"
-            else:
-                url = ch  # invite link or full url
+            url = f"https://t.me/{ch[1:]}" if ch.startswith("@") else ch
 
             keyboard.append([
                 InlineKeyboardButton("🔥 عضویت در کانال", url=url)
@@ -225,10 +223,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             InlineKeyboardButton("✅ عضو شدم", callback_data="check_membership")
         ])
 
-        await query.message.reply_text(
+        await query.message.edit_text(
             "📢 برای دسترسی باید عضو کانال‌ها بشی:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
+        return
 
     # ✅ check membership
     elif query.data == "check_membership":
@@ -237,7 +236,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         if ok:
 
-            # ❌ حذف پیام عضویت
             try:
                 await query.message.delete()
             except:
@@ -245,7 +243,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             category = context.user_data.get("category")
 
-            # ⚠️ جلوگیری از None crash
             if category:
                 await send_category(update, context, category)
             else:
@@ -254,18 +251,154 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.answer("❌ هنوز عضو نشدی", show_alert=True)
 
-    # 👇 پنل ادمین (اگر اضافه کردی)
-    elif query.data == "admin_categories":
-        await query.message.reply_text("📁 مدیریت دسته‌ها")
+        return
 
+    # 🛠 ADMIN PANEL MAIN
+    elif query.data == "admin_main":
+
+        keyboard = [
+            [InlineKeyboardButton("📁 مدیریت دسته‌ها", callback_data="admin_categories")],
+            [InlineKeyboardButton("📢 مدیریت کانال‌ها", callback_data="admin_channels")],
+            [InlineKeyboardButton("👮 مدیریت ادمین‌ها", callback_data="admin_admins")],
+            [InlineKeyboardButton("📊 آمار", callback_data="admin_stats")],
+            [InlineKeyboardButton("⬅️ برگشت", callback_data="back_admin")]
+        ]
+
+        await query.message.edit_text(
+            "🛠 پنل مدیریت",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
+    # 📢 CHANNEL PANEL (FIXED)
     elif query.data == "admin_channels":
-        await query.message.reply_text("📢 مدیریت کانال‌ها")
 
+        keyboard = [
+            [InlineKeyboardButton("➕ افزودن کانال", callback_data="add_channel")],
+            [InlineKeyboardButton("🗑 حذف کانال", callback_data="remove_channel")],
+            [InlineKeyboardButton("📋 لیست کانال‌ها", callback_data="list_channels")],
+            [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_main")]
+        ]
+
+        await query.message.edit_text(
+            "📢 مدیریت کانال‌ها:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
+    elif query.data == "list_channels":
+
+        channels = await get_active_channels()
+
+        if not channels:
+            await query.message.edit_text("❌ هیچ کانالی ثبت نشده")
+            return
+
+        text = "📋 کانال‌های فعال:\n\n"
+
+        for i, ch in enumerate(channels, 1):
+            text += f"{i}. {ch}\n"
+
+        keyboard = [
+            [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_channels")]
+        ]
+
+        await query.message.edit_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
+    elif query.data == "add_channel":
+
+        context.user_data["action"] = "add_channel"
+
+        await query.message.edit_text(
+            "➕ کانال + زمان (ساعت) رو بفرست:\n\nمثال:\n@mychannel 24"
+        )
+        return
+
+    elif query.data == "remove_channel":
+
+        context.user_data["action"] = "remove_channel"
+
+        await query.message.edit_text(
+            "🗑 آیدی کانال رو بفرست:\n\nمثال:\n@mychannel"
+        )
+        return
+
+    # 📁 categories
+    elif query.data == "admin_categories":
+        await query.message.edit_text("📁 مدیریت دسته‌ها (در حال ساخت)")
+        return
+
+    # 👮 admins
     elif query.data == "admin_admins":
-        await query.message.reply_text("👮 مدیریت ادمین‌ها")
+        await query.message.edit_text("👮 مدیریت ادمین‌ها (در حال ساخت)")
+        return
 
+    # 📊 stats
     elif query.data == "admin_stats":
-        await query.message.reply_text("📊 آمار")
+        await query.message.edit_text("📊 آمار (در حال ساخت)")
+        return
+
+    # ⬅️ BACK
+    elif query.data == "back_admin":
+
+        keyboard = [
+            [InlineKeyboardButton("📁 مدیریت دسته‌ها", callback_data="admin_categories")],
+            [InlineKeyboardButton("📢 مدیریت کانال‌ها", callback_data="admin_channels")],
+            [InlineKeyboardButton("👮 مدیریت ادمین‌ها", callback_data="admin_admins")],
+            [InlineKeyboardButton("📊 آمار", callback_data="admin_stats")]
+        ]
+
+        await query.message.edit_text(
+            "🛠 پنل مدیریت",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
+        return
+
+
+async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    action = context.user_data.get("action")
+
+    if not action:
+        return
+
+    text = update.message.text.strip()
+
+    # ➕ ADD CHANNEL
+    if action == "add_channel":
+
+        try:
+            chat_id, hours = text.split()
+            hours = int(hours)
+
+            expire = int(time.time()) + hours * 3600
+
+            cursor.execute(
+                "INSERT INTO channels (chat_id, expire_time) VALUES (?, ?)",
+                (chat_id, expire)
+            )
+            conn.commit()
+
+            await update.message.reply_text("✅ کانال اضافه شد")
+
+        except:
+            await update.message.reply_text("❌ فرمت اشتباهه")
+
+        context.user_data["action"] = None
+
+    # 🗑 REMOVE CHANNEL
+    elif action == "remove_channel":
+
+        cursor.execute("DELETE FROM channels WHERE chat_id = ?", (text,))
+        conn.commit()
+
+        await update.message.reply_text("🗑 کانال حذف شد")
+
+        context.user_data["action"] = None
 
 
 async def send_join_gate(update, context):
@@ -462,7 +595,7 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app = Application.builder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("admin", admin_panel))
-
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("set", set_category))
 app.add_handler(CallbackQueryHandler(button))
