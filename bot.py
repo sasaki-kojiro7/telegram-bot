@@ -76,6 +76,23 @@ async def check_membership(bot, user_id):
 
 import time
 
+async def list_channels(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    cursor.execute("SELECT chat_id, expire_time FROM channels")
+    rows = cursor.fetchall()
+
+    if not rows:
+        await update.message.reply_text("❌ هیچ کانالی ثبت نشده")
+        return
+
+    text = "📢 لیست کانال‌ها:\n\n"
+
+    for chat_id, expire in rows:
+        text += f"{chat_id} | expire: {expire}\n"
+
+    await update.message.reply_text(text)
+
+
 async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if len(context.args) < 2:
@@ -212,6 +229,19 @@ async def send_category(update, context, category):
         media=media_group
     )
 
+async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not context.args:
+        await update.message.reply_text("استفاده: /removechannel id")
+        return
+
+    chat_id = context.args[0]
+
+    cursor.execute("DELETE FROM channels WHERE chat_id = ?", (chat_id,))
+    conn.commit()
+
+    await update.message.reply_text("🗑 کانال حذف شد")
+
 
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -253,4 +283,6 @@ app.add_handler(CommandHandler("set", set_category))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, save_media))
 app.add_handler(CommandHandler("addchannel", add_channel))
+app.add_handler(CommandHandler("listchannels", list_channels))
+app.add_handler(CommandHandler("removechannel", remove_channel))
 app.run_polling()
