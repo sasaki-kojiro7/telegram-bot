@@ -55,7 +55,7 @@ async def check_membership(bot, user_id):
     channels = await get_active_channels()
 
     if not channels:
-        return True  # اگر کانالی نیست، آزاد
+        return True
 
     for channel in channels:
         try:
@@ -67,11 +67,10 @@ async def check_membership(bot, user_id):
                 return False
 
         except Exception as e:
-            print(f"ERROR {channel}: {e}")
-            return False
+            print(f"SKIP CHANNEL ERROR {channel}: {e}")
+            continue  # 👈 مهم
 
     return True
-
 
 
 import time
