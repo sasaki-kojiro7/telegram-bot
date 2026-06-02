@@ -242,5 +242,5 @@ app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("set", set_category))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, save_media))
-
+app.add_handler(CommandHandler("addchannel", add_channel))
 app.run_polling()
