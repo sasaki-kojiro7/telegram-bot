@@ -74,6 +74,8 @@ async def check_membership(bot, user_id):
 
 
 
+import time
+
 async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if len(context.args) < 2:
@@ -91,6 +93,9 @@ async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     conn.commit()
 
+    await update.message.reply_text("✅ کانال اضافه شد")
+
+
 async def get_active_channels():
     now = int(time.time())
 
@@ -100,9 +105,6 @@ async def get_active_channels():
     )
 
     return [row[0] for row in cursor.fetchall()]
-
-
-    await update.message.reply_text("✅ کانال اضافه شد")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
