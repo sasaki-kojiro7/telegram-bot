@@ -1,12 +1,10 @@
-from telegram import InputMediaPhoto, InputMediaVideo
-
 from telegram import (
     Update,
     InlineKeyboardButton,
     InlineKeyboardMarkup,
-    InputMediaPhoto
+    InputMediaPhoto,
+    InputMediaVideo
 )
-
 from telegram.ext import (
     Application,
     CommandHandler,
@@ -16,8 +14,9 @@ from telegram.ext import (
     filters
 )
 
-import os
 import sqlite3
+
+# ================= DATABASE =================
 conn = sqlite3.connect("bot.db", check_same_thread=False)
 cursor = conn.cursor()
 
@@ -31,19 +30,18 @@ CREATE TABLE IF NOT EXISTS media (
 """)
 
 conn.commit()
+
 # ================= CONFIG =================
-TOKEN = "8913519612:AAGwQY8FDd9uzYAazdKizk9POtXhZgpjW14"
+TOKEN = "YOUR_BOT_TOKEN"
 CHANNEL_1 = -1003967540137
 CHANNEL_2 = -1004293009722
 CHANNEL_LINK_1 = "https://t.me/+XXXXXXX1"
 CHANNEL_LINK_2 = "https://t.me/+XXXXXXX2"
-# =========================================
+# ==========================================
 
 
-# 🚀 START (deep link support)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # اگر از کانال اومده (مثلا ana_photos)
     if context.args:
         category = context.args[0]
         await send_category(update, context, category)
@@ -60,15 +58,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ]
     ]
 
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
     await update.message.reply_text(
         "🎬 خوش اومدی!\n\nیکی از گزینه‌ها رو انتخاب کن:",
-        reply_markup=reply_markup
+        reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
 
-# 🎛 BUTTON HANDLER
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -80,12 +75,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("🎥 فعلاً ویدیو آماده نیست 😎")
 
     elif query.data == "join":
-        keyboard = [
-            [
-                InlineKeyboardButton("🔥 کانال فیلم", url=CHANNEL_LINK_1),
-                InlineKeyboardButton("🎬 کانال VIP", url=CHANNEL_LINK_2)
-            ]
-        ]
+        keyboard = [[
+            InlineKeyboardButton("🔥 کانال فیلم", url=CHANNEL_LINK_1),
+            InlineKeyboardButton("🎬 کانال VIP", url=CHANNEL_LINK_2)
+        ]]
+
         await query.message.reply_text(
             "📢 برای دسترسی عضو شوید:",
             reply_markup=InlineKeyboardMarkup(keyboard)
@@ -93,6 +87,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     elif query.data == "check":
         user_id = query.from_user.id
+
         try:
             m1 = await context.bot.get_chat_member(CHANNEL_1, user_id)
             m2 = await context.bot.get_chat_member(CHANNEL_2, user_id)
@@ -104,12 +99,13 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await query.message.reply_text("✅ تایید شد")
             else:
                 await query.message.reply_text("❌ عضو کانال‌ها نیستی")
+
         except Exception as e:
             await query.message.reply_text(f"⚠️ خطا:\n{e}")
 
 
-# 🟢 SET CATEGORY (اصلاح شده)
 async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     if not context.args:
         await update.message.reply_text("استفاده: /set ana_photos")
         return
@@ -117,18 +113,9 @@ async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["category"] = context.args[0]
 
     await update.message.reply_text(
-        f"✅ دسته فعال شد: {context.user_data['category']}\n\n"
-        "حالا عکس بفرست"
+        f"✅ دسته فعال شد: {context.user_data['category']}\n\nحالا عکس یا ویدیو بفرست"
     )
 
-
-# 📸 SAVE MEDIA (اصلاح شده + واقعی)
-import os
-
-
-from telegram import InputMediaPhoto, InputMediaVideo
-
-from telegram import InputMediaPhoto, InputMediaVideo
 
 async def send_category(update, context, category):
 
@@ -157,24 +144,6 @@ async def send_category(update, context, category):
         chat_id=update.effective_chat.id,
         media=media_group
     )
-    if not rows:
-        await update.message.reply_text("❌ چیزی پیدا نشد")
-        return
-
-    media_group = []
-
-    for file_id, media_type in rows:
-
-        if media_type == "photo":
-            media_group.append(InputMediaPhoto(file_id))
-
-        elif media_type == "video":
-            media_group.append(InputMediaVideo(file_id))
-
-    await context.bot.send_media_group(
-        chat_id=update.effective_chat.id,
-        media=media_group
-    )
 
 
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -185,8 +154,8 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("❗️ اول /set بزن و دسته انتخاب کن")
         return
 
-    # PHOTO
     if update.message.photo:
+
         file_id = update.message.photo[-1].file_id
 
         cursor.execute(
@@ -197,22 +166,8 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text("✅ عکس ذخیره شد")
 
-    # VIDEO (این بخش رو اضافه کن)
     elif update.message.video:
-        file_id = update.message.video.file_id
 
-        cursor.execute(
-            "INSERT INTO media (category, file_id, type) VALUES (?, ?, ?)",
-            (category, file_id, "video")
-        )
-        conn.commit()
-
-        await update.message.reply_text("✅ ویدیو ذخیره شد")
-
-        await update.message.reply_text("✅ عکس ذخیره شد")
-
-    # VIDEO
-    elif update.message.video:
         file_id = update.message.video.file_id
 
         cursor.execute(
@@ -224,8 +179,6 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ ویدیو ذخیره شد")
 
 
-
-# 🚀 RUN BOT
 app = Application.builder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("start", start))
