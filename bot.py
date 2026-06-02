@@ -54,10 +54,7 @@ conn.commit()
 
 # ================= CONFIG =================
 TOKEN = "8913519612:AAGwQY8FDd9uzYAazdKizk9POtXhZgpjW14"
-CHANNEL_1 = -1003967540137
-CHANNEL_2 = -1004293009722
-CHANNEL_LINK_1 = "https://t.me/+XXXXXXX1"
-CHANNEL_LINK_2 = "https://t.me/+XXXXXXX2"
+
 # ==========================================
 
 async def is_admin(user_id):
