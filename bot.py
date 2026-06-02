@@ -206,6 +206,13 @@ async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def send_category(update, context, category):
 
+    # 🔒 چک عضویت (مهم‌ترین قسمت)
+    ok = await check_membership(context.bot, update.effective_user.id)
+
+    if not ok:
+        await update.message.reply_text("❗️ اول عضو کانال‌ها شو")
+        return
+
     cursor.execute(
         "SELECT file_id, type FROM media WHERE category=?",
         (category,)
