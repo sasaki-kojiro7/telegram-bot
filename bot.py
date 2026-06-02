@@ -21,6 +21,17 @@ import time
 conn = sqlite3.connect("bot.db", check_same_thread=False)
 cursor = conn.cursor()
 
+cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", ( 6503127920,))
+conn.commit()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS admins (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER UNIQUE
+)
+""")
+conn.commit()
+
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS media (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +59,10 @@ CHANNEL_2 = -1004293009722
 CHANNEL_LINK_1 = "https://t.me/+XXXXXXX1"
 CHANNEL_LINK_2 = "https://t.me/+XXXXXXX2"
 # ==========================================
+
+async def is_admin(user_id):
+    cursor.execute("SELECT user_id FROM admins WHERE user_id=?", (user_id,))
+    return cursor.fetchone() is not None
 
 
 async def check_membership(bot, user_id):
