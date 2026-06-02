@@ -126,11 +126,16 @@ async def get_active_channels():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    if context.args:
-        category = context.args[0]
+    text = update.message.text or ""
+    parts = text.split()
+
+    # 🔥 اگر لینک یا /start با دسته بود
+    if len(parts) > 1:
+        category = parts[1].strip()
         await send_category(update, context, category)
         return
 
+    # 🎛 منوی اصلی
     keyboard = [
         [
             InlineKeyboardButton("📷 تصاویر", callback_data="photos"),
@@ -146,7 +151,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "🎬 خوش اومدی!\n\nیکی از گزینه‌ها رو انتخاب کن:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
-
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
