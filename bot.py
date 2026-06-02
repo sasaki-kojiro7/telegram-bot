@@ -162,6 +162,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.reply_text("🎥 فعلاً ویدیو آماده نیست 😎")
 
     elif query.data == "join":
+
         keyboard = [[
             InlineKeyboardButton("🔥 کانال فیلم", url=CHANNEL_LINK_1),
             InlineKeyboardButton("🎬 کانال VIP", url=CHANNEL_LINK_2)
@@ -173,23 +174,16 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
     elif query.data == "check":
+
         user_id = query.from_user.id
 
-        try:
-            m1 = await context.bot.get_chat_member(CHANNEL_1, user_id)
-            m2 = await context.bot.get_chat_member(CHANNEL_2, user_id)
+        # 🔥 یکپارچه با سیستم دیتابیس خودت
+        ok = await check_membership(context.bot, user_id)
 
-            ok1 = m1.status in ["member", "administrator", "creator"]
-            ok2 = m2.status in ["member", "administrator", "creator"]
-
-            if ok1 and ok2:
-                await query.message.reply_text("✅ تایید شد")
-            else:
-                await query.message.reply_text("❌ عضو کانال‌ها نیستی")
-
-        except Exception as e:
-            await query.message.reply_text(f"⚠️ خطا:\n{e}")
-
+        if ok:
+            await query.message.reply_text("✅ تایید شد")
+        else:
+            await query.message.reply_text("❌ عضو کانال‌ها نیستی")
 
 async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
