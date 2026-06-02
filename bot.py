@@ -187,18 +187,26 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
     query = update.callback_query
     await query.answer()
 
+    # 📷 photos
     if query.data == "photos":
         await query.message.reply_text("📷 برای دیدن دسته‌ها /start دسته_اسم بزن")
 
+    # 🎥 video
     elif query.data == "video":
         await query.message.reply_text("🎥 فعلاً ویدیو آماده نیست 😎")
 
+    # 📢 join channels
     elif query.data == "join":
 
         channels = await get_active_channels()
+
+        if not channels:
+            await query.message.reply_text("❌ هیچ کانالی تنظیم نشده")
+            return
 
         keyboard = []
 
@@ -207,7 +215,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if ch.startswith("@"):
                 url = f"https://t.me/{ch[1:]}"
             else:
-                url = ch
+                url = ch  # invite link or full url
 
             keyboard.append([
                 InlineKeyboardButton("🔥 عضویت در کانال", url=url)
@@ -222,16 +230,22 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
 
+    # ✅ check membership
     elif query.data == "check_membership":
 
         ok = await check_membership(context.bot, query.from_user.id)
 
         if ok:
 
-            await query.message.delete()
+            # ❌ حذف پیام عضویت
+            try:
+                await query.message.delete()
+            except:
+                pass
 
             category = context.user_data.get("category")
 
+            # ⚠️ جلوگیری از None crash
             if category:
                 await send_category(update, context, category)
             else:
@@ -240,6 +254,20 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             await query.answer("❌ هنوز عضو نشدی", show_alert=True)
 
+    # 👇 پنل ادمین (اگر اضافه کردی)
+    elif query.data == "admin_categories":
+        await query.message.reply_text("📁 مدیریت دسته‌ها")
+
+    elif query.data == "admin_channels":
+        await query.message.reply_text("📢 مدیریت کانال‌ها")
+
+    elif query.data == "admin_admins":
+        await query.message.reply_text("👮 مدیریت ادمین‌ها")
+
+    elif query.data == "admin_stats":
+        await query.message.reply_text("📊 آمار")
+
+        
 async def send_join_gate(update, context):
 
     channels = await get_active_channels()
@@ -373,6 +401,26 @@ async def set_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if not await is_admin(update.effective_user.id):
+        await update.message.reply_text("⛔ دسترسی نداری")
+        return
+
+    keyboard = [
+        [InlineKeyboardButton("📁 مدیریت دسته‌ها", callback_data="admin_categories")],
+        [InlineKeyboardButton("📢 مدیریت کانال‌ها", callback_data="admin_channels")],
+        [InlineKeyboardButton("👮 مدیریت ادمین‌ها", callback_data="admin_admins")],
+        [InlineKeyboardButton("📊 آمار", callback_data="admin_stats")]
+    ]
+
+    await update.message.reply_text(
+        "🛠 پنل مدیریت",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+
+
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 🔒 قفل ادمین
@@ -413,6 +461,8 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 app = Application.builder().token(TOKEN).build()
 
+app.add_handler(CommandHandler("admin", admin_panel))
+
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CommandHandler("set", set_category))
 app.add_handler(CallbackQueryHandler(button))
@@ -420,6 +470,4 @@ app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, save_media))
 app.add_handler(CommandHandler("addchannel", add_channel))
 app.add_handler(CommandHandler("listchannels", list_channels))
 app.add_handler(CommandHandler("removechannel", remove_channel))
-cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", (6503127920,))
-conn.commit()
 app.run_polling()
