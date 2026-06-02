@@ -125,7 +125,14 @@ async def get_active_channels():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # 🔒 چک عضویت اول
+    # 🔥 اول دسته لینک رو ذخیره کن
+    text = update.message.text or ""
+    parts = text.split()
+
+    if len(parts) > 1:
+        context.user_data["category"] = parts[1].strip()
+
+    # 🔒 چک عضویت
     user_id = update.effective_user.id
     ok = await check_membership(context.bot, user_id)
 
@@ -133,12 +140,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await send_join_gate(update, context)
         return
 
-    # 🔥 دریافت دسته از لینک /start
-    text = update.message.text or ""
-    parts = text.split()
-
+    # 📦 اگر لینک دسته داشت
     if len(parts) > 1:
-        category = parts[1].strip()
+        category = context.user_data["category"]
         await send_category(update, context, category)
         return
 
@@ -176,10 +180,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         keyboard = []
 
         for ch in channels:
+
             if ch.startswith("@"):
                 url = f"https://t.me/{ch[1:]}"
             else:
-                url = ch  # invite link
+                url = ch
 
             keyboard.append([
                 InlineKeyboardButton("🔥 عضویت در کانال", url=url)
@@ -199,11 +204,18 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ok = await check_membership(context.bot, query.from_user.id)
 
         if ok:
+
             await query.message.delete()
-            await query.message.reply_text("✅ تایید شد")
+
+            category = context.user_data.get("category")
+
+            if category:
+                await send_category(update, context, category)
+            else:
+                await query.message.reply_text("✅ عضویت تایید شد")
+
         else:
             await query.answer("❌ هنوز عضو نشدی", show_alert=True)
-
 
 async def send_join_gate(update, context):
 
