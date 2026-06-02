@@ -16,6 +16,7 @@ from telegram.ext import (
 
 import sqlite3
 
+import time
 # ================= DATABASE =================
 conn = sqlite3.connect("bot.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -31,6 +32,15 @@ CREATE TABLE IF NOT EXISTS media (
 
 conn.commit()
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS channels (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    chat_id TEXT,
+    expire_time INTEGER
+)
+""")
+conn.commit()
+
 # ================= CONFIG =================
 TOKEN = "8913519612:AAGwQY8FDd9uzYAazdKizk9POtXhZgpjW14"
 CHANNEL_1 = -1003967540137
@@ -38,6 +48,53 @@ CHANNEL_2 = -1004293009722
 CHANNEL_LINK_1 = "https://t.me/+XXXXXXX1"
 CHANNEL_LINK_2 = "https://t.me/+XXXXXXX2"
 # ==========================================
+
+
+async def check_membership(bot, user_id):
+
+    channels = await get_active_channels()
+
+    for channel in channels:
+        try:
+            member = await bot.get_chat_member(channel, user_id)
+            if member.status not in ["member", "administrator", "creator"]:
+                return False
+        except:
+            return False
+
+    return True
+
+
+
+async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if len(context.args) < 2:
+        await update.message.reply_text("استفاده: /addchannel id 24")
+        return
+
+    chat_id = context.args[0]
+    hours = int(context.args[1])
+
+    expire = int(time.time()) + hours * 3600
+
+    cursor.execute(
+        "INSERT INTO channels (chat_id, expire_time) VALUES (?, ?)",
+        (chat_id, expire)
+    )
+    conn.commit()
+
+async def get_active_channels():
+    now = int(time.time())
+
+    cursor.execute(
+        "SELECT chat_id FROM channels WHERE expire_time > ?",
+        (now,)
+    )
+
+    return [row[0] for row in cursor.fetchall()]
+
+
+    await update.message.reply_text("✅ کانال اضافه شد")
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
