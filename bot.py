@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS channels (
 conn.commit()
 
 # ================= CONFIG =================
-TOKEN = ""
+TOKEN = "8913519612:AAGb9xRpB1ECQN0TEY9Qyg_teTPfq3cA-xA"
 
 # ==========================================
 
