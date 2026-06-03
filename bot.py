@@ -61,7 +61,7 @@ CREATE TABLE IF NOT EXISTS channels (
 conn.commit()
 
 # ================= CONFIG =================
-TOKEN = "8913519612:AAGb9xRpB1ECQN0TEY9Qyg_teTPfq3cA-xA"
+TOKEN = ""
 
 # ==========================================
 
@@ -341,81 +341,30 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 👮 admins
     elif query.data == "admin_admins":
-        
 
-        keybord = [
-    [InlineKeyboardButton("+ افزودن ادمین", callback_data="add_admin")],
-    [InlineKeyboardButton("🗑 حذف ادمین", callback_data="remove_admin")],
-    [InlineKeyboardButton("📋 لیست ادمین‌ها", callback_data="list_admins")],
-    [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_main")]
-        ]
-    await query.message.edit_text(
-         "👮 مدیریت ادمین‌ها:",
-         reply_markup=InlineKeyboardMarkup(keyboard)
-    )   
-    return
-
-    # 📊 stats
-    elif query.data == "admin_stats":
-    await query.message.edit_text("📊 آمار (در حال ساخت)")
-    return
-
-    
-    keyboard = [
-            [InlineKeyboardButton("📁 مدیریت دسته‌ها", callback_data="admin_categories")],
-            [InlineKeyboardButton("📢 مدیریت کانال‌ها", callback_data="admin_channels")],
-            [InlineKeyboardButton("👮 مدیریت ادمین‌ها", callback_data="admin_admins")],
-            [InlineKeyboardButton("📊 آمار", callback_data="admin_stats")]
+        keyboard = [
+            [InlineKeyboardButton("+ افزودن ادمین", callback_data="add_admin")],
+            [InlineKeyboardButton("🗑 حذف ادمین", callback_data="remove_admin")],
+            [InlineKeyboardButton("📋 لیست ادمین‌ها", callback_data="list_admins")],
+            [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_main")]
         ]
 
-    await query.message.edit_text(
-            "🛠 پنل مدیریت",
+        await query.message.edit_text(
+            "👮 مدیریت ادمین‌ها:",
             reply_markup=InlineKeyboardMarkup(keyboard)
         )
-    return
-
-    elif query.data == "admin_categories":
-
-    keyboard = [
-        [InlineKeyboardButton("➕ افزودن دسته", callback_data="add_category")],
-        [InlineKeyboardButton("🗑 حذف دسته", callback_data="remove_category")],
-        [InlineKeyboardButton("📋 لیست دسته‌ها", callback_data="list_categories")],
-        [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_main")]
-    ]
-
-    await query.message.edit_text(
-        "📁 مدیریت دسته‌ها:",
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return
-
-    elif query.data == "list_categories":
-
-    cursor.execute("SELECT name FROM categories")
-    cats = cursor.fetchall()
-
-    if not cats:
-        await query.message.edit_text("❌ هیچ دسته‌ای وجود ندارد")
         return
 
-    text = "📋 لیست دسته‌ها:\n\n"
-
-    for i, c in enumerate(cats, 1):
-        text += f"{i}. {c[0]}\n"
-
-    keyboard = [
-        [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_categories")]
-    ]
-
-    await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
-    return
+    elif query.data == "admin_stats":
+        await query.message.edit_text("📊 آمار (در حال ساخت)")
+        return
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     action = context.user_data.get("action")
 
     if not action:
-        return
+      return
 
     text = update.message.text.strip()
 
