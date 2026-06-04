@@ -60,6 +60,14 @@ CREATE TABLE IF NOT EXISTS channels (
 """)
 conn.commit()
 
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS categories (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT UNIQUE
+)
+""")
+
+
 # ================= CONFIG =================
 TOKEN = "8913519612:AAGb9xRpB1ECQN0TEY9Qyg_teTPfq3cA-xA"
 
@@ -193,12 +201,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
     await query.answer()
-
-    
 
     # 📷 photos
     if query.data == "photos":
@@ -244,7 +251,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         ok = await check_membership(context.bot, query.from_user.id)
 
         if ok:
-
             try:
                 await query.message.delete()
             except:
@@ -262,7 +268,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return
 
-    # 🛠 ADMIN MAIN PANEL
+    # 🛠 ADMIN MAIN
     elif query.data == "admin_main":
 
         keyboard = [
@@ -311,10 +317,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_channels")]
         ]
 
-        await query.message.edit_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
 
     elif query.data == "add_channel":
@@ -337,10 +340,21 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 📁 CATEGORIES
     elif query.data == "admin_categories":
-        await query.message.edit_text("📁 مدیریت دسته‌ها (در حال ساخت)")
+
+        keyboard = [
+            [InlineKeyboardButton("➕ افزودن دسته", callback_data="add_category")],
+            [InlineKeyboardButton("🗑 حذف دسته", callback_data="remove_category")],
+            [InlineKeyboardButton("📋 لیست دسته‌ها", callback_data="list_categories")],
+            [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_main")]
+        ]
+
+        await query.message.edit_text(
+            "📁 مدیریت دسته‌ها:",
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
         return
 
-    # 👮 ADMINS PANEL
+    # 👮 ADMINS
     elif query.data == "admin_admins":
 
         keyboard = [
@@ -381,29 +395,32 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # 📋 LIST ADMINS
     elif query.data == "list_admins":
 
-     admins = await get_admins()
+        admins = await get_admins()
 
-    if not admins:
-        await query.message.edit_text("❌ هیچ ادمینی ثبت نشده")
+        if not admins:
+            await query.message.edit_text("❌ هیچ ادمینی ثبت نشده")
+            return
+
+        text = "👮 لیست ادمین‌ها:\n\n"
+
+        for i, a in enumerate(admins, 1):
+            text += f"{i}. {a[0]}\n"
+
+        keyboard = [
+            [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_admins")]
+        ]
+
+        await query.message.edit_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(keyboard)
+        )
         return
-
-    text = "👮 لیست ادمین‌ها:\n\n"
-
-    for i, a in enumerate(admins, 1):
-        text += f"{i}. {a[0]}\n"
-
-    keyboard = [
-        [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_admins")]
-    ]
-
-    await query.message.edit_text(
-        text,
-        reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-    return
         
+
+
 
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -433,15 +450,19 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("✅ کانال اضافه شد")
 
         except:
-            await update.message.reply_text("❌ فرمت اشتباهه")
+            await update.message.reply_text("❌ فرمت اشتباهه (مثال: @channel 24)")
 
         context.user_data["action"] = None
         return
 
+
     # 🗑 REMOVE CHANNEL
     elif action == "remove_channel":
 
-        cursor.execute("DELETE FROM channels WHERE chat_id = ?", (text,))
+        cursor.execute(
+            "DELETE FROM channels WHERE chat_id = ?",
+            (text,)
+        )
         conn.commit()
 
         await update.message.reply_text("🗑 کانال حذف شد")
@@ -449,11 +470,12 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["action"] = None
         return
 
+
     # ➕ ADD ADMIN
     elif action == "add_admin":
 
         if not text.isdigit():
-            await update.message.reply_text("❌ فقط عدد بفرست")
+            await update.message.reply_text("❌ فقط آیدی عددی بفرست")
             return
 
         user_id = int(text)
@@ -464,16 +486,17 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         conn.commit()
 
-        context.user_data["action"] = None
-
         await update.message.reply_text("✅ ادمین اضافه شد")
+
+        context.user_data["action"] = None
         return
+
 
     # 🗑 REMOVE ADMIN
     elif action == "remove_admin":
 
         if not text.isdigit():
-            await update.message.reply_text("❌ فقط عدد بفرست")
+            await update.message.reply_text("❌ فقط آیدی عددی بفرست")
             return
 
         user_id = int(text)
@@ -484,10 +507,44 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         conn.commit()
 
-        context.user_data["action"] = None
-
         await update.message.reply_text("🗑 ادمین حذف شد")
+
+        context.user_data["action"] = None
         return
+
+
+    # ➕ ADD CATEGORY
+    elif action == "add_category":
+
+        name = text.strip()
+
+        cursor.execute(
+            "INSERT INTO categories (name) VALUES (?)",
+            (name,)
+        )
+        conn.commit()
+
+        await update.message.reply_text("📁 دسته اضافه شد")
+
+        context.user_data["action"] = None
+        return
+
+
+    # 🗑 REMOVE CATEGORY
+    elif action == "remove_category":
+
+        cursor.execute(
+            "DELETE FROM categories WHERE name = ?",
+            (text.strip(),)
+        )
+        conn.commit()
+
+        await update.message.reply_text("🗑 دسته حذف شد")
+
+        context.user_data["action"] = None
+        return
+    
+       
     
 async def get_admins():
     cursor.execute("SELECT user_id FROM admins")
