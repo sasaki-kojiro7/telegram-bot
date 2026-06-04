@@ -708,13 +708,33 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 🗑 REMOVE CATEGORY
     elif action == "remove_category":
 
+        category_name = text.strip()
+
+        cursor.execute(
+            "SELECT code FROM categories WHERE name = ?",
+            (category_name,)
+        )
+        row = cursor.fetchone()
+
+        if not row:
+            await update.message.reply_text("❌ چنین دسته‌ای پیدا نشد")
+            return
+
+        category_code = row[0]
+
+        cursor.execute(
+            "DELETE FROM media WHERE category = ?",
+            (category_code,)
+        )
+
         cursor.execute(
             "DELETE FROM categories WHERE name = ?",
-            (text.strip(),)
+            (category_name,)
         )
+
         conn.commit()
 
-        await update.message.reply_text("🗑 دسته حذف شد")
+        await update.message.reply_text("🗑 دسته و فایل‌های آن حذف شدند")
 
         context.user_data["action"] = None
         return
