@@ -487,8 +487,25 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 
+    elif query.data == "add_media":
+
+        context.user_data["action"] = "waiting_media"
+        context.user_data["media_category"] = None  # یا اگر دسته داری اینجا ست کن
+
+        await query.message.edit_text(
+            "📤 اول اسم دسته رو بفرست (مثلاً: cat_1)"
+        )
+        return
+
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
+
+        context.user_data["media_category"] = update.message.text.strip()
+
+        await update.message.reply_text("📤 حالا عکس یا ویدیو رو بفرست")
+        return
 
     # 📤 WAITING MEDIA
     if context.user_data.get("action") == "waiting_media":
