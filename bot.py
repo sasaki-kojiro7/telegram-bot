@@ -504,16 +504,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "add_media":
 
         context.user_data["action"] = "waiting_media"
-        context.user_data["media_category"] = None  # یا اگر دسته داری اینجا ست کن
-
-        await query.message.edit_text(
-            "📤 اول اسم دسته رو بفرست (مثلاً: cat_1)"
-        )
-        return
-   
-    elif query.data == "add_media":
-
-        context.user_data["action"] = "waiting_media"
         context.user_data["media_category"] = None
 
         await query.message.edit_text(
@@ -935,6 +925,7 @@ app = Application.builder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("admin", admin_panel))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.ALL, text_handler))
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(CommandHandler("addchannel", add_channel))
