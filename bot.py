@@ -170,12 +170,44 @@ async def get_active_channels():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # 🔥 اول دسته لینک رو ذخیره کن
     text = update.message.text or ""
     parts = text.split()
 
+    # 🔥 لینک /start cat_1
     if len(parts) > 1:
-        context.user_data["category"] = parts[1].strip()
+
+        code = parts[1].strip()
+
+        # 📁 اگر دسته بود
+        if code.startswith("cat_"):
+
+            cursor.execute(
+                "SELECT file_id, type FROM media WHERE category = ?",
+                (code,)
+            )
+            files = cursor.fetchall()
+
+            if not files:
+                await update.message.reply_text("❌ این دسته خالیه")
+                return
+
+            await update.message.reply_text(f"📁 محتواهای {code}:")
+
+            for file_id, ftype in files:
+
+                if ftype == "photo":
+                    await update.message.reply_photo(file_id)
+
+                elif ftype == "video":
+                    await update.message.reply_video(file_id)
+
+                elif ftype == "document":
+                    await update.message.reply_document(file_id)
+
+            return
+
+        # 🔒 اگر چیز دیگه بود (مثل سیستم قبلی)
+        context.user_data["category"] = code
 
     # 🔒 چک عضویت
     user_id = update.effective_user.id
@@ -183,12 +215,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not ok:
         await send_join_gate(update, context)
-        return
-
-    # 📦 اگر لینک دسته داشت
-    if len(parts) > 1:
-        category = context.user_data["category"]
-        await send_category(update, context, category)
         return
 
     # 🎛 منوی اصلی
@@ -350,6 +376,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         keyboard = [
             [InlineKeyboardButton("➕ افزودن دسته", callback_data="add_category")],
+            [InlineKeyboardButton("📤 افزودن فایل", callback_data="add_media")],
             [InlineKeyboardButton("🗑 حذف دسته", callback_data="remove_category")],
             [InlineKeyboardButton("📋 لیست دسته‌ها", callback_data="list_categories")],
             [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_main")]
@@ -450,11 +477,55 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
         
+    elif query.data == "add_media":
 
+        context.user_data["action"] = "select_media_category"
+
+        await query.message.edit_text(
+            "📤 کد دسته را بفرست:\nمثال:\ncat_1"
+        )
+        return
 
 
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+# 📤 WAITING MEDIA
+    if context.user_data.get("action") == "waiting_media":
+
+        category = context.user_data.get("media_category")
+
+        file_id = None
+        file_type = None
+
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+        file_type = "photo"
+
+    elif update.message.video:
+        file_id = update.message.video.file_id
+        file_type = "video"
+
+    elif update.message.document:
+        file_id = update.message.document.file_id
+        file_type = "document"
+
+    else:
+        await update.message.reply_text("❌ فقط عکس یا ویدیو بفرست")
+        return
+
+    cursor.execute(
+        "INSERT INTO media (category, file_id, type) VALUES (?, ?, ?)",
+        (category, file_id, file_type)
+    )
+    conn.commit()
+
+    await update.message.reply_text("✅ فایل داخل دسته ذخیره شد")
+
+    context.user_data["action"] = None
+    context.user_data["media_category"] = None
+    return
+
 
     action = context.user_data.get("action")
 
@@ -597,7 +668,15 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data["action"] = None
         return
     
-       
+    elif action == "select_media_category":
+
+        context.user_data["media_category"] = text.strip()
+        context.user_data["action"] = "waiting_media"
+
+        await update.message.reply_text(
+            "📤 حالا عکس یا ویدیو بفرست"
+        )
+        return
     
 async def get_admins():
     cursor.execute("SELECT user_id FROM admins")
