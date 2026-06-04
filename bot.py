@@ -198,6 +198,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    
+
     # 📷 photos
     if query.data == "photos":
         await query.message.reply_text("📷 برای دیدن دسته‌ها /start دسته_اسم بزن")
@@ -260,15 +262,14 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         return
 
-    # 🛠 ADMIN PANEL MAIN
+    # 🛠 ADMIN MAIN PANEL
     elif query.data == "admin_main":
 
         keyboard = [
             [InlineKeyboardButton("📁 مدیریت دسته‌ها", callback_data="admin_categories")],
             [InlineKeyboardButton("📢 مدیریت کانال‌ها", callback_data="admin_channels")],
             [InlineKeyboardButton("👮 مدیریت ادمین‌ها", callback_data="admin_admins")],
-            [InlineKeyboardButton("📊 آمار", callback_data="admin_stats")],
-            [InlineKeyboardButton("⬅️ برگشت", callback_data="back_admin")]
+            [InlineKeyboardButton("📊 آمار", callback_data="admin_stats")]
         ]
 
         await query.message.edit_text(
@@ -277,7 +278,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 📢 CHANNEL PANEL (FIXED)
+    # 📢 CHANNELS
     elif query.data == "admin_channels":
 
         keyboard = [
@@ -334,12 +335,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 📁 categories
+    # 📁 CATEGORIES
     elif query.data == "admin_categories":
         await query.message.edit_text("📁 مدیریت دسته‌ها (در حال ساخت)")
         return
 
-    # 👮 admins
+    # 👮 ADMINS PANEL
     elif query.data == "admin_admins":
 
         keyboard = [
@@ -355,16 +356,62 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # 📊 STATS
     elif query.data == "admin_stats":
         await query.message.edit_text("📊 آمار (در حال ساخت)")
         return
+
+    # ➕ ADD ADMIN
+    elif query.data == "add_admin":
+
+        context.user_data["action"] = "add_admin"
+
+        await query.message.edit_text(
+            "➕ آیدی عددی کاربر رو بفرست:\n\nمثال:\n123456789"
+        )
+        return
+
+    # 🗑 REMOVE ADMIN
+    elif query.data == "remove_admin":
+
+        context.user_data["action"] = "remove_admin"
+
+        await query.message.edit_text(
+            "🗑 آیدی عددی ادمین رو بفرست:"
+        )
+        return
+
+    elif query.data == "list_admins":
+
+     admins = await get_admins()
+
+    if not admins:
+        await query.message.edit_text("❌ هیچ ادمینی ثبت نشده")
+        return
+
+    text = "👮 لیست ادمین‌ها:\n\n"
+
+    for i, a in enumerate(admins, 1):
+        text += f"{i}. {a[0]}\n"
+
+    keyboard = [
+        [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_admins")]
+    ]
+
+    await query.message.edit_text(
+        text,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+    return
+        
+
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     action = context.user_data.get("action")
 
     if not action:
-      return
+        return
 
     text = update.message.text.strip()
 
@@ -389,6 +436,7 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await update.message.reply_text("❌ فرمت اشتباهه")
 
         context.user_data["action"] = None
+        return
 
     # 🗑 REMOVE CHANNEL
     elif action == "remove_channel":
@@ -399,8 +447,52 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("🗑 کانال حذف شد")
 
         context.user_data["action"] = None
+        return
 
+    # ➕ ADD ADMIN
+    elif action == "add_admin":
 
+        if not text.isdigit():
+            await update.message.reply_text("❌ فقط عدد بفرست")
+            return
+
+        user_id = int(text)
+
+        cursor.execute(
+            "INSERT OR IGNORE INTO admins (user_id) VALUES (?)",
+            (user_id,)
+        )
+        conn.commit()
+
+        context.user_data["action"] = None
+
+        await update.message.reply_text("✅ ادمین اضافه شد")
+        return
+
+    # 🗑 REMOVE ADMIN
+    elif action == "remove_admin":
+
+        if not text.isdigit():
+            await update.message.reply_text("❌ فقط عدد بفرست")
+            return
+
+        user_id = int(text)
+
+        cursor.execute(
+            "DELETE FROM admins WHERE user_id = ?",
+            (user_id,)
+        )
+        conn.commit()
+
+        context.user_data["action"] = None
+
+        await update.message.reply_text("🗑 ادمین حذف شد")
+        return
+    
+async def get_admins():
+    cursor.execute("SELECT user_id FROM admins")
+    return cursor.fetchall()    
+    
 async def send_join_gate(update, context):
 
     channels = await get_active_channels()
