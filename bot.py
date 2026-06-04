@@ -67,6 +67,13 @@ CREATE TABLE IF NOT EXISTS categories (
 )
 """)
 
+try:
+    cursor.execute("ALTER TABLE categories ADD COLUMN code TEXT")
+except:
+    pass
+
+
+conn.commit()
 
 # ================= CONFIG =================
 TOKEN = "8913519612:AAGb9xRpB1ECQN0TEY9Qyg_teTPfq3cA-xA"
