@@ -199,19 +199,20 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("❌ این دسته خالیه")
                 return
 
-            await update.message.reply_text(f"📁 محتواهای {code}:")
+            media_group = []
 
             for file_id, ftype in files:
-
                 if ftype == "photo":
-                    await update.message.reply_photo(file_id)
-
+                    media_group.append(InputMediaPhoto(file_id))
                 elif ftype == "video":
-                    await update.message.reply_video(file_id)
+                    media_group.append(InputMediaVideo(file_id))
 
-                elif ftype == "document":
-                    await update.message.reply_document(file_id)
-
+            if media_group:
+                for i in range(0, len(media_group), 10):
+                    await context.bot.send_media_group(
+                        chat_id=update.effective_chat.id,
+                        media=media_group[i:i+10]
+                    )
             return
 
         # 🔒 اگر چیز دیگه بود (مثل سیستم قبلی)
@@ -572,10 +573,8 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         conn.commit()
 
-        await update.message.reply_text("✅ فایل داخل دسته ذخیره شد")
+        await update.message.reply_text("✅ فایل ذخیره شد، فایل بعدی را هم ارسال کن")
 
-        context.user_data["action"] = None
-        context.user_data["media_category"] = None
         return
 
 
