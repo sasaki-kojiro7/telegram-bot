@@ -496,9 +496,28 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "📤 اول اسم دسته رو بفرست (مثلاً: cat_1)"
         )
         return
+   
+    elif query.data == "add_media":
 
+        context.user_data["action"] = "waiting_media"
+        context.user_data["media_category"] = None
+
+        await query.message.edit_text(
+            "📁 اسم دسته رو بفرست (مثلاً: cat_1)"
+        )
+        return
+    
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+
+    # 📤 STEP 1: گرفتن اسم دسته
+    if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
+
+        context.user_data["media_category"] = update.message.text.strip()
+
+        await update.message.reply_text("📤 حالا عکس یا ویدیو رو بفرست")
+        return
+
 
     if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
 
@@ -506,6 +525,42 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         await update.message.reply_text("📤 حالا عکس یا ویدیو رو بفرست")
         return
+
+    if context.user_data.get("action") == "waiting_media":
+
+        category = context.user_data.get("media_category")
+
+        file_id = None
+        file_type = None
+
+    if update.message.photo:
+        file_id = update.message.photo[-1].file_id
+        file_type = "photo"
+
+    elif update.message.video:
+        file_id = update.message.video.file_id
+        file_type = "video"
+
+    elif update.message.document:
+        file_id = update.message.document.file_id
+        file_type = "document"
+
+    else:
+        await update.message.reply_text("❌ فقط عکس یا ویدیو بفرست")
+        return
+
+    cursor.execute(
+        "INSERT INTO media (category, file_id, type) VALUES (?, ?, ?)",
+        (category, file_id, file_type)
+    )
+    conn.commit()
+
+    await update.message.reply_text("✅ ذخیره شد")
+
+    context.user_data["action"] = None
+    context.user_data["media_category"] = None
+    return
+
 
     # 📤 WAITING MEDIA
     if context.user_data.get("action") == "waiting_media":
