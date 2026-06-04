@@ -555,6 +555,28 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         conn.commit()
 
+        cat_id = cursor.lastrowid
+
+        code = f"cat_{cat_id}"
+
+        cursor.execute(
+            "UPDATE categories SET code = ? WHERE id = ?",
+            (code, cat_id)
+        )
+        conn.commit()
+
+        bot_username = (await context.bot.get_me()).username
+
+        link = f"https://t.me/{bot_username}?start={code}"
+
+        await update.message.reply_text(
+            f"✅ دسته ساخته شد\n\n🔗 لینک دسته:\n{link}"
+        )
+
+        context.user_data["action"] = None
+        return
+        
+        
         await update.message.reply_text("📁 دسته اضافه شد")
 
         context.user_data["action"] = None
