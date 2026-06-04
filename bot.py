@@ -524,13 +524,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-    # 📤 STEP 1: گرفتن اسم دسته
-    if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
 
-        context.user_data["media_category"] = update.message.text.strip()
-
-        await update.message.reply_text("📤 حالا عکس یا ویدیو رو بفرست")
-        return
 
 
     if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
@@ -947,6 +941,7 @@ app = Application.builder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("admin", admin_panel))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.ALL, text_handler))
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(CommandHandler("addchannel", add_channel))
