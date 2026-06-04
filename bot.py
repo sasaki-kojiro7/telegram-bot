@@ -73,6 +73,14 @@ except:
     pass
 
 
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS users (
+    user_id INTEGER PRIMARY KEY
+)
+""")
+conn.commit()
+
 conn.commit()
 
 # ================= CONFIG =================
@@ -211,6 +219,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 🔒 چک عضویت
     user_id = update.effective_user.id
+    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)",(user_id,))
+    conn.commit()
     ok = await check_membership(context.bot, user_id)
 
     if not ok:
@@ -440,7 +450,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     elif query.data == "admin_stats":
-        await query.message.edit_text("📊 آمار (در حال ساخت)")
+        cursor.execute("SELECT COUNT(*) FROM users"); users=cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM media"); media=cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM categories"); cats=cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) FROM channels"); chans=cursor.fetchone()[0]
+        await query.message.edit_text(f"📊 آمار\n\n👥 کاربران: {users}\n📁 دسته‌ها: {cats}\n🎞 فایل‌ها: {media}\n📢 کانال‌ها: {chans}")
         return
 
     elif query.data == "add_admin":
@@ -922,9 +936,7 @@ app = Application.builder().token(TOKEN).build()
 app.add_handler(CommandHandler("admin", admin_panel))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
 app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("set", set_category))
 app.add_handler(CallbackQueryHandler(button))
-app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, save_media))
 app.add_handler(CommandHandler("addchannel", add_channel))
 app.add_handler(CommandHandler("listchannels", list_channels))
 app.add_handler(CommandHandler("removechannel", remove_channel))
