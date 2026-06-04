@@ -354,6 +354,41 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    elif query.data == "add_category":
+
+        context.user_data["action"] = "add_category"
+
+        await query.message.edit_text("➕ اسم دسته رو بفرست:")
+        return
+
+    elif query.data == "remove_category":
+
+        context.user_data["action"] = "remove_category"
+
+        await query.message.edit_text("🗑 اسم دسته برای حذف رو بفرست:")
+        return
+
+    elif query.data == "list_categories":
+
+        cursor.execute("SELECT name FROM categories")
+        cats = cursor.fetchall()
+
+        if not cats:
+            await query.message.edit_text("❌ هیچ دسته‌ای وجود ندارد")
+            return
+
+        text = "📋 لیست دسته‌ها:\n\n"
+
+        for i, c in enumerate(cats, 1):
+            text += f"{i}. {c[0]}\n"
+
+        keyboard = [
+            [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_categories")]
+        ]
+
+        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
+        return
+
     # 👮 ADMINS
     elif query.data == "admin_admins":
 
@@ -370,32 +405,24 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # 📊 STATS
     elif query.data == "admin_stats":
         await query.message.edit_text("📊 آمار (در حال ساخت)")
         return
 
-    # ➕ ADD ADMIN
     elif query.data == "add_admin":
 
         context.user_data["action"] = "add_admin"
 
-        await query.message.edit_text(
-            "➕ آیدی عددی کاربر رو بفرست:\n\nمثال:\n123456789"
-        )
+        await query.message.edit_text("➕ آیدی عددی کاربر رو بفرست:")
         return
 
-    # 🗑 REMOVE ADMIN
     elif query.data == "remove_admin":
 
         context.user_data["action"] = "remove_admin"
 
-        await query.message.edit_text(
-            "🗑 آیدی عددی ادمین رو بفرست:"
-        )
+        await query.message.edit_text("🗑 آیدی عددی ادمین رو بفرست:")
         return
 
-    # 📋 LIST ADMINS
     elif query.data == "list_admins":
 
         admins = await get_admins()
@@ -413,10 +440,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⬅️ برگشت", callback_data="admin_admins")]
         ]
 
-        await query.message.edit_text(
-            text,
-            reply_markup=InlineKeyboardMarkup(keyboard)
-        )
+        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(keyboard))
         return
         
 
