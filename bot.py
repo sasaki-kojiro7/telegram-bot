@@ -533,34 +533,6 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         file_id = None
         file_type = None
 
-    if update.message.photo:
-        file_id = update.message.photo[-1].file_id
-        file_type = "photo"
-
-    elif update.message.video:
-        file_id = update.message.video.file_id
-        file_type = "video"
-
-    elif update.message.document:
-        file_id = update.message.document.file_id
-        file_type = "document"
-
-    else:
-        await update.message.reply_text("❌ فقط عکس یا ویدیو بفرست")
-        return
-
-    cursor.execute(
-        "INSERT INTO media (category, file_id, type) VALUES (?, ?, ?)",
-        (category, file_id, file_type)
-    )
-    conn.commit()
-
-    await update.message.reply_text("✅ ذخیره شد")
-
-    context.user_data["action"] = None
-    context.user_data["media_category"] = None
-    return
-
 
     # 📤 WAITING MEDIA
     if context.user_data.get("action") == "waiting_media":
