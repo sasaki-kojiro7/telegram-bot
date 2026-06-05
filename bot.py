@@ -968,4 +968,7 @@ app.add_handler(CommandHandler("listchannels", list_channels))
 app.add_handler(CommandHandler("removechannel", remove_channel))
 cursor.execute("INSERT OR IGNORE INTO admins (user_id) VALUES (?)", ( 6503127920,))
 conn.commit()
-app.run_polling()
+app.run_polling(
+    drop_pending_updates=True,
+    close_loop=False
+)
