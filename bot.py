@@ -14,9 +14,6 @@ from telegram.ext import (
     filters
 )
 
-from telegram.ext import Application
-
-
 import sqlite3
 
 import time
@@ -815,7 +812,10 @@ async def send_category(update, context, category):
         keyboard = []
 
         for ch in channels:
-            url = f"https://t.me/{ch[1:]}" if ch.startswith("@") else ch
+            if ch.startswith("@"):
+                url = f"https://t.me/{ch[1:]}"
+            else:
+                url = ch  # invite link
 
             keyboard.append([
                 InlineKeyboardButton("📢 عضویت در کانال", url=url)
@@ -853,37 +853,11 @@ async def send_category(update, context, category):
         elif media_type == "video":
             media_group.append(InputMediaVideo(file_id))
 
-    # 📤 ارسال آلبومی (هر 10 فایل)
-    all_messages = []
-
-    for i in range(0, len(media_group), 10):
-
-        chunk = media_group[i:i + 10]
-
-        msgs = await context.bot.send_media_group(
-            chat_id=update.effective_chat.id,
-            media=chunk
-        )
-
-        all_messages.extend(msgs)
-
-    warning = await context.bot.send_message(
+    # 📤 ارسال
+    await context.bot.send_media_group(
         chat_id=update.effective_chat.id,
-        text="⚠️ فایل‌ها را ذخیره کنید، این پیام‌ها تا 15 ثانیه دیگر حذف خواهند شد."
+        media=media_group
     )
-
-    job_queue = context.application.job_queue
-
-    job_queue.run_once(
-        callback=delete_job,
-        when=15,
-        data={
-            "chat_id": update.effective_chat.id,
-            "messages": all_messages,
-            "warning_id": warning.message_id
-        }
-    )
-    
 
 async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -942,29 +916,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def delete_job(context):
-    job = context.job.data
 
-    chat_id = job["chat_id"]
-    messages = job["messages"]
-    warning_id = job["warning_id"]
-
-    for msg in messages:
-        try:
-            await context.bot.delete_message(
-                chat_id=chat_id,
-                message_id=msg.message_id
-            )
-        except:
-            pass
-
-    try:
-        await context.bot.delete_message(
-            chat_id=chat_id,
-            message_id=warning_id
-        )
-    except:
-        pass
 
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
