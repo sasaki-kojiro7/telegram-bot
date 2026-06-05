@@ -15,7 +15,7 @@ from telegram.ext import (
 )
 
 import sqlite3
-
+import asyncio
 import time
 # ================= DATABASE =================
 conn = sqlite3.connect("bot.db", check_same_thread=False)
@@ -859,6 +859,15 @@ async def send_category(update, context, category):
         media=media_group
     )
 
+    asyncio.create_task(
+        delete_messages_later(
+            context.bot,
+            update.effective_chat.id,
+            all_messages,
+            warning.message_id
+        )
+    )
+
 async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 🔒 قفل ادمین
@@ -916,7 +925,19 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+async def delete_messages_later(bot, chat_id, messages, warning_id):
+    await asyncio.sleep(15)
 
+    for msg in messages:
+        try:
+            await bot.delete_message(chat_id=chat_id, message_id=msg.message_id)
+        except:
+            pass
+
+    try:
+        await bot.delete_message(chat_id=chat_id, message_id=warning_id)
+    except:
+        pass
 
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
