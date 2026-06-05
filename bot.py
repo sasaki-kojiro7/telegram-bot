@@ -15,8 +15,9 @@ from telegram.ext import (
 )
 
 import sqlite3
-import asyncio
+
 import time
+import asyncio
 # ================= DATABASE =================
 conn = sqlite3.connect("bot.db", check_same_thread=False)
 cursor = conn.cursor()
@@ -207,12 +208,37 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 elif ftype == "video":
                     media_group.append(InputMediaVideo(file_id))
 
+            sent_messages = []
+
             if media_group:
                 for i in range(0, len(media_group), 10):
-                    await context.bot.send_media_group(
+                    msgs = await context.bot.send_media_group(
                         chat_id=update.effective_chat.id,
                         media=media_group[i:i+10]
                     )
+                    sent_messages.extend(msgs)
+
+            warn = await context.bot.send_message(
+                chat_id=update.effective_chat.id,
+                text="⚠️ فایل‌ها تا ۱۵ ثانیه دیگر حذف می‌شوند"
+            )
+
+            await asyncio.sleep(15)
+
+            for msg in sent_messages:
+                try:
+                    await context.bot.delete_message(
+                        chat_id=update.effective_chat.id,
+                        message_id=msg.message_id
+                    )
+                except:
+                    pass
+
+            try:
+                await warn.delete()
+            except:
+                pass
+
             return
 
         # 🔒 اگر چیز دیگه بود (مثل سیستم قبلی)
@@ -853,20 +879,37 @@ async def send_category(update, context, category):
         elif media_type == "video":
             media_group.append(InputMediaVideo(file_id))
 
-    # 📤 ارسال
-    await context.bot.send_media_group(
+    sent_messages = []
+
+    for i in range(0, len(media_group), 10):
+        msgs = await context.bot.send_media_group(
+            chat_id=update.effective_chat.id,
+            media=media_group[i:i+10]
+        )
+        sent_messages.extend(msgs)
+
+    warn = await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        media=media_group
+        text="⚠️ فایل‌ها تا ۱۵ ثانیه دیگر حذف می‌شوند"
     )
 
-    asyncio.create_task(
-        delete_messages_later(
-            context.bot,
-            update.effective_chat.id,
-            all_messages,
-            warning.message_id
-        )
-    )
+    await asyncio.sleep(15)
+
+    for msg in sent_messages:
+        try:
+            await context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=msg.message_id
+            )
+        except:
+            pass
+
+    try:
+        await warn.delete()
+    except:
+        pass
+
+
 
 async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -925,19 +968,6 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
-async def delete_messages_later(bot, chat_id, messages, warning_id):
-    await asyncio.sleep(15)
-
-    for msg in messages:
-        try:
-            await bot.delete_message(chat_id=chat_id, message_id=msg.message_id)
-        except:
-            pass
-
-    try:
-        await bot.delete_message(chat_id=chat_id, message_id=warning_id)
-    except:
-        pass
 
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
