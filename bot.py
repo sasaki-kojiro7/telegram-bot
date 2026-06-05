@@ -15,7 +15,7 @@ from telegram.ext import (
 )
 
 import sqlite3
-
+import asyncio
 import time
 # ================= DATABASE =================
 conn = sqlite3.connect("bot.db", check_same_thread=False)
@@ -72,14 +72,6 @@ try:
 except:
     pass
 
-
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS users (
-    user_id INTEGER PRIMARY KEY
-)
-""")
-conn.commit()
 
 conn.commit()
 
@@ -199,20 +191,19 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.message.reply_text("❌ این دسته خالیه")
                 return
 
-            media_group = []
+            await update.message.reply_text(f"📁 محتواهای {code}:")
 
             for file_id, ftype in files:
-                if ftype == "photo":
-                    media_group.append(InputMediaPhoto(file_id))
-                elif ftype == "video":
-                    media_group.append(InputMediaVideo(file_id))
 
-            if media_group:
-                for i in range(0, len(media_group), 10):
-                    await context.bot.send_media_group(
-                        chat_id=update.effective_chat.id,
-                        media=media_group[i:i+10]
-                    )
+                if ftype == "photo":
+                    await update.message.reply_photo(file_id)
+
+                elif ftype == "video":
+                    await update.message.reply_video(file_id)
+
+                elif ftype == "document":
+                    await update.message.reply_document(file_id)
+
             return
 
         # 🔒 اگر چیز دیگه بود (مثل سیستم قبلی)
@@ -220,8 +211,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 🔒 چک عضویت
     user_id = update.effective_user.id
-    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)",(user_id,))
-    conn.commit()
     ok = await check_membership(context.bot, user_id)
 
     if not ok:
@@ -451,11 +440,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     elif query.data == "admin_stats":
-        cursor.execute("SELECT COUNT(*) FROM users"); users=cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM media"); media=cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM categories"); cats=cursor.fetchone()[0]
-        cursor.execute("SELECT COUNT(*) FROM channels"); chans=cursor.fetchone()[0]
-        await query.message.edit_text(f"📊 آمار\n\n👥 کاربران: {users}\n📁 دسته‌ها: {cats}\n🎞 فایل‌ها: {media}\n📢 کانال‌ها: {chans}")
+        await query.message.edit_text("📊 آمار (در حال ساخت)")
         return
 
     elif query.data == "add_admin":
@@ -494,38 +479,26 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     elif query.data == "add_media":
 
-        context.user_data["action"] = "select_media_category"
-
-        await query.message.edit_text(
-            "📤 کد دسته را بفرست:\nمثال:\ncat_1"
-        )
-        return
-
-
-    elif query.data == "add_media":
-
-        context.user_data["action"] = "waiting_media"
-        context.user_data["media_category"] = None  # یا اگر دسته داری اینجا ست کن
-
-        await query.message.edit_text(
-            "📤 اول اسم دسته رو بفرست (مثلاً: cat_1)"
-        )
-        return
-   
-    elif query.data == "add_media":
-
         context.user_data["action"] = "waiting_media"
         context.user_data["media_category"] = None
 
         await query.message.edit_text(
-            "📁 اسم دسته رو بفرست (مثلاً: cat_1)"
+            "📁 اسم دسته رو بفرست (مثلاً: cat_1)\n"
+            "بعدش می‌تونی چندتا عکس پشت سر هم بفرستی 😏\n"
+            "آخرش /done بزن"
         )
         return
     
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+    # 📤 STEP 1: گرفتن اسم دسته
+    if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
 
+        context.user_data["media_category"] = update.message.text.strip()
+
+        await update.message.reply_text("📤 حالا عکس یا ویدیو رو بفرست")
+        return
 
 
     if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
@@ -573,8 +546,10 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         conn.commit()
 
-        await update.message.reply_text("✅ فایل ذخیره شد، فایل بعدی را هم ارسال کن")
+        await update.message.reply_text("✅ فایل داخل دسته ذخیره شد")
 
+        context.user_data["action"] = None
+        context.user_data["media_category"] = None
         return
 
 
@@ -708,52 +683,20 @@ async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # 🗑 REMOVE CATEGORY
     elif action == "remove_category":
 
-        category_name = text.strip()
-
-        cursor.execute(
-            "SELECT code FROM categories WHERE name = ?",
-            (category_name,)
-        )
-        row = cursor.fetchone()
-
-        if not row:
-            await update.message.reply_text("❌ چنین دسته‌ای پیدا نشد")
-            return
-
-        category_code = row[0]
-
-        cursor.execute(
-            "DELETE FROM media WHERE category = ?",
-            (category_code,)
-        )
-
         cursor.execute(
             "DELETE FROM categories WHERE name = ?",
-            (category_name,)
+            (text.strip(),)
         )
-
         conn.commit()
 
-        await update.message.reply_text("🗑 دسته و فایل‌های آن حذف شدند")
+        await update.message.reply_text("🗑 دسته حذف شد")
 
         context.user_data["action"] = None
         return
     
     elif action == "select_media_category":
 
-        category_name = text.strip()
-
-        cursor.execute(
-            "SELECT code FROM categories WHERE name = ?",
-            (category_name,)
-        )
-        row = cursor.fetchone()
-
-        if not row:
-            await update.message.reply_text("❌ چنین دسته‌ای پیدا نشد")
-            return
-
-        context.user_data["media_category"] = row[0]
+        context.user_data["media_category"] = text.strip()
         context.user_data["action"] = "waiting_media"
 
         await update.message.reply_text(
@@ -853,11 +796,44 @@ async def send_category(update, context, category):
         elif media_type == "video":
             media_group.append(InputMediaVideo(file_id))
 
-    # 📤 ارسال
-    await context.bot.send_media_group(
+    # 📤 ارسال آلبومی (هر 10 فایل یک آلبوم)
+
+    all_messages = []
+
+    for i in range(0, len(media_group), 10):
+
+        chunk = media_group[i:i + 10]
+
+        msgs = await context.bot.send_media_group(
+            chat_id=update.effective_chat.id,
+            media=chunk
+        )
+
+        all_messages.extend(msgs)
+
+    warning = await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        media=media_group
+        text="⚠️ فایل‌ها را ذخیره کنید، این پیام‌ها تا 15 ثانیه دیگر حذف خواهند شد."
     )
+
+    await asyncio.sleep(15)
+
+    for msg in all_messages:
+        try:
+            await context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=msg.message_id
+            )
+        except:
+            pass
+
+    try:
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=warning.message_id
+        )
+    except:
+        pass
 
 async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
@@ -960,9 +936,10 @@ app = Application.builder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("admin", admin_panel))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
-app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.ALL, text_handler))
 app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("set", set_category))
 app.add_handler(CallbackQueryHandler(button))
+app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, save_media))
 app.add_handler(CommandHandler("addchannel", add_channel))
 app.add_handler(CommandHandler("listchannels", list_channels))
 app.add_handler(CommandHandler("removechannel", remove_channel))
