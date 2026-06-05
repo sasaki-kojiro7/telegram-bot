@@ -14,10 +14,11 @@ from telegram.ext import (
     filters
 )
 
+from telegram.ext import Application
 
 
 import sqlite3
-import asyncio
+
 import time
 # ================= DATABASE =================
 conn = sqlite3.connect("bot.db", check_same_thread=False)
@@ -871,28 +872,17 @@ async def send_category(update, context, category):
         text="⚠️ فایل‌ها را ذخیره کنید، این پیام‌ها تا 15 ثانیه دیگر حذف خواهند شد."
     )
 
-    # 🚀 مهم: حذف بدون sleep (پایدار برای polling)
-    async def auto_delete():
-        await asyncio.sleep(15)
+    job_queue = context.application.job_queue
 
-        for msg in all_messages:
-            try:
-                await context.bot.delete_message(
-                    chat_id=update.effective_chat.id,
-                    message_id=msg.message_id
-                )
-            except:
-                pass
-
-        try:
-            await context.bot.delete_message(
-                chat_id=update.effective_chat.id,
-                message_id=warning.message_id
-            )
-        except:
-            pass
-
-    asyncio.create_task(auto_delete())
+    job_queue.run_once(
+        callback=delete_job,
+        when=15,
+        data={
+            "chat_id": update.effective_chat.id,
+            "messages": all_messages,
+            "warning_id": warning.message_id
+        }
+    )
     
 
 async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -952,7 +942,29 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
+async def delete_job(context):
+    job = context.job.data
 
+    chat_id = job["chat_id"]
+    messages = job["messages"]
+    warning_id = job["warning_id"]
+
+    for msg in messages:
+        try:
+            await context.bot.delete_message(
+                chat_id=chat_id,
+                message_id=msg.message_id
+            )
+        except:
+            pass
+
+    try:
+        await context.bot.delete_message(
+            chat_id=chat_id,
+            message_id=warning_id
+        )
+    except:
+        pass
 
 async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
