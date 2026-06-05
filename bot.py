@@ -814,10 +814,7 @@ async def send_category(update, context, category):
         keyboard = []
 
         for ch in channels:
-            if ch.startswith("@"):
-                url = f"https://t.me/{ch[1:]}"
-            else:
-                url = ch  # invite link
+            url = f"https://t.me/{ch[1:]}" if ch.startswith("@") else ch
 
             keyboard.append([
                 InlineKeyboardButton("📢 عضویت در کانال", url=url)
@@ -855,8 +852,7 @@ async def send_category(update, context, category):
         elif media_type == "video":
             media_group.append(InputMediaVideo(file_id))
 
-    # 📤 ارسال آلبومی (هر 10 فایل یک آلبوم)
-
+    # 📤 ارسال آلبومی (هر 10 فایل)
     all_messages = []
 
     for i in range(0, len(media_group), 10):
@@ -875,24 +871,28 @@ async def send_category(update, context, category):
         text="⚠️ فایل‌ها را ذخیره کنید، این پیام‌ها تا 15 ثانیه دیگر حذف خواهند شد."
     )
 
-    await asyncio.sleep(15)
+    # 🚀 مهم: حذف بدون sleep (پایدار برای polling)
+    async def auto_delete():
+        await asyncio.sleep(15)
 
-    for msg in all_messages:
+        for msg in all_messages:
+            try:
+                await context.bot.delete_message(
+                    chat_id=update.effective_chat.id,
+                    message_id=msg.message_id
+                )
+            except:
+                pass
+
         try:
             await context.bot.delete_message(
                 chat_id=update.effective_chat.id,
-                message_id=msg.message_id
+                message_id=warning.message_id
             )
         except:
             pass
 
-    try:
-        await context.bot.delete_message(
-            chat_id=update.effective_chat.id,
-            message_id=warning.message_id
-        )
-    except:
-        pass
+    asyncio.create_task(auto_delete())
     
 
 async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
