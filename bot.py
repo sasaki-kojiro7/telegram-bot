@@ -14,8 +14,10 @@ from telegram.ext import (
     filters
 )
 
-import sqlite3
 
+
+import sqlite3
+import asyncio
 import time
 # ================= DATABASE =================
 conn = sqlite3.connect("bot.db", check_same_thread=False)
@@ -853,11 +855,45 @@ async def send_category(update, context, category):
         elif media_type == "video":
             media_group.append(InputMediaVideo(file_id))
 
-    # 📤 ارسال
-    await context.bot.send_media_group(
+    # 📤 ارسال آلبومی (هر 10 فایل یک آلبوم)
+
+    all_messages = []
+
+    for i in range(0, len(media_group), 10):
+
+        chunk = media_group[i:i + 10]
+
+        msgs = await context.bot.send_media_group(
+            chat_id=update.effective_chat.id,
+            media=chunk
+        )
+
+        all_messages.extend(msgs)
+
+    warning = await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        media=media_group
+        text="⚠️ فایل‌ها را ذخیره کنید، این پیام‌ها تا 15 ثانیه دیگر حذف خواهند شد."
     )
+
+    await asyncio.sleep(15)
+
+    for msg in all_messages:
+        try:
+            await context.bot.delete_message(
+                chat_id=update.effective_chat.id,
+                message_id=msg.message_id
+            )
+        except:
+            pass
+
+    try:
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=warning.message_id
+        )
+    except:
+        pass
+    
 
 async def remove_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
