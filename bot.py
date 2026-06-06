@@ -100,8 +100,6 @@ async def is_admin(user_id):
 
 async def check_membership(bot, user_id):
 
-    print("USER ID =", user_id)
-
     channels = await get_active_channels()
 
     print("CHANNELS =", channels)
@@ -283,10 +281,9 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
-    if query.data not in ["join", "check_membership"]:
-        if not await check_membership(context.bot, query.from_user.id):
-            await query.answer("❌ اول عضو کانال شو", show_alert=True)
-            return
+    if not await is_allowed(update, context):
+        await update.callback_query.answer("❌ اول عضو کانال شو", show_alert=True)
+        return
 
 
     # 📷 photos
@@ -533,14 +530,6 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == "add_media":
 
         context.user_data["action"] = "select_media_category"
-        context.user_data["media_category"] = None
-
-        await query.message.edit_text(
-            "📁 اسم دسته را بفرست"
-        )
-        return
-
-        context.user_data["action"] = "select_media_category"
 
         await query.message.edit_text(
             "📤 کد دسته را بفرست:\nمثال:\ncat_1"
@@ -548,7 +537,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 
-    
+    elif query.data == "add_media":
 
         context.user_data["action"] = "waiting_media"
         context.user_data["media_category"] = None  # یا اگر دسته داری اینجا ست کن
@@ -558,7 +547,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
    
-    
+    elif query.data == "add_media":
 
         context.user_data["action"] = "waiting_media"
         context.user_data["media_category"] = None
@@ -1047,8 +1036,8 @@ async def save_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
 app = Application.builder().token(TOKEN).build()
 
 app.add_handler(CommandHandler("admin", admin_panel))
-app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.ALL, save_media))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, text_handler))
+app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.ALL, text_handler))
 app.add_handler(CommandHandler("start", start))
 app.add_handler(CallbackQueryHandler(button))
 app.add_handler(CommandHandler("addchannel", add_channel))
