@@ -111,8 +111,8 @@ async def check_membership(bot, user_id):
                 return False
 
         except Exception as e:
-            print(f"SKIP CHANNEL ERROR {channel}: {e}")
-            continue  # 👈 مهم
+            print(f"CHANNEL ERROR {channel}: {e}")
+            return False
 
     return True
 
