@@ -89,6 +89,10 @@ TOKEN = "8913519612:AAGeqo4PRcSOFPwkbqnp6DEfzQUzWtnL7qQ"
 
 # ==========================================
 
+async def is_allowed(update, context):
+    return await check_membership(context.bot, update.effective_user.id)
+
+
 async def is_admin(user_id):
     cursor.execute("SELECT user_id FROM admins WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
@@ -276,6 +280,11 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     query = update.callback_query
     await query.answer()
+
+    if not await is_allowed(update, context):
+        await update.callback_query.answer("❌ اول عضو کانال شو", show_alert=True)
+        return
+
 
     # 📷 photos
     if query.data == "photos":
@@ -825,6 +834,11 @@ async def send_join_gate(update, context):
 
 
 async def send_category(update, context, category):
+
+
+    if not await is_allowed(update, context):
+        await update.message.reply_text("❗️ برای دریافت فایل باید عضو کانال‌ها باشی")
+        return
 
     user_id = update.effective_user.id
 
