@@ -511,12 +511,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
 
-    async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 📤 STEP 1: گرفتن اسم دسته
-        if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
+    if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
 
-            context.user_data["media_category"] = update.message.text.strip()
+        context.user_data["media_category"] = update.message.text.strip()
 
         await update.message.reply_text("📤 حالا عکس یا ویدیو رو بفرست")
         return
