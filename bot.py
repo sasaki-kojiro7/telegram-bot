@@ -372,7 +372,12 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except:
                 pass
 
-            await query.message.reply_text("✅ عضویت تایید شد")
+            category = context.user_data.get("category")
+
+            if category:
+                await send_category(update, context, category)
+            else:
+                await query.message.reply_text("✅ عضویت تایید شد")
 
         else:
             await query.answer("❌ هنوز عضو نشدی", show_alert=True)
