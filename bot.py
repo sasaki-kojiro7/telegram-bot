@@ -212,6 +212,7 @@ async def get_active_channels():
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    context.user_data["category"] = code
 
     text = update.message.text or ""
     parts = text.split()
@@ -282,8 +283,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
 
         # 🔒 اگر چیز دیگه بود (مثل سیستم قبلی)
-        context.user_data["category"] = code
-
+       
     # 🔒 چک عضویت
     user_id = update.effective_user.id
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)",(user_id,))
@@ -874,9 +874,6 @@ async def send_join_gate(update, context):
 async def send_category(update, context, category):
 
 
-    if not await is_allowed(update, context):
-        await update.message.reply_text("❗️ برای دریافت فایل باید عضو کانال‌ها باشی")
-        return
 
     user_id = update.effective_user.id
 
