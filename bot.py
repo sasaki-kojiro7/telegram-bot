@@ -828,6 +828,11 @@ async def send_category(update, context, category):
 
     user_id = update.effective_user.id
 
+    print("CHECKING MEMBERSHIP FOR", user_id)
+
+    ok = await check_membership(context.bot, user_id)
+
+    print("RESULT =", ok)
     # 🔒 چک عضویت
     ok = await check_membership(context.bot, user_id)
 
