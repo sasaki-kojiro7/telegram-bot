@@ -833,12 +833,16 @@ async def send_category(update, context, category):
     ok = await check_membership(context.bot, user_id)
 
     print("RESULT =", ok)
-    # 🔒 چک عضویت
-    ok = await check_membership(context.bot, user_id)
 
+    # 🔒 چک عضویت
     if not ok:
 
         channels = await get_active_channels()
+        print("CHANNELS =", channels)
+
+        if not channels:
+            await update.message.reply_text("❌ هیچ کانالی تنظیم نشده")
+            return
 
         keyboard = []
 
@@ -846,7 +850,7 @@ async def send_category(update, context, category):
             if ch.startswith("@"):
                 url = f"https://t.me/{ch[1:]}"
             else:
-                url = ch  # invite link
+                url = ch
 
             keyboard.append([
                 InlineKeyboardButton("📢 عضویت در کانال", url=url)
@@ -910,7 +914,10 @@ async def send_category(update, context, category):
             pass
 
     try:
-        await warn.delete()
+        await context.bot.delete_message(
+            chat_id=update.effective_chat.id,
+            message_id=warn.message_id
+        )
     except:
         pass
 
