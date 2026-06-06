@@ -140,6 +140,36 @@ async def list_channels(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(text)
 
 
+async def membership_gate(update, context):
+    user_id = update.effective_user.id
+
+    ok = await check_membership(context.bot, user_id)
+
+    if ok:
+        return True
+
+    channels = await get_active_channels()
+
+    keyboard = []
+
+    for ch in channels:
+        url = f"https://t.me/{ch[1:]}" if ch.startswith("@") else ch
+
+        keyboard.append([
+            InlineKeyboardButton("📢 عضویت در کانال", url=url)
+        ])
+
+    keyboard.append([
+        InlineKeyboardButton("✅ عضو شدم", callback_data="check_membership")
+    ])
+
+    await update.effective_message.reply_text(
+        "❗️ برای استفاده از ربات باید عضو کانال‌ها بشی:",
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+
+    return False
+
 async def add_channel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 🔒 قفل ادمین
@@ -278,11 +308,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
+
     query = update.callback_query
     await query.answer()
 
-    if not await is_allowed(update, context):
-        await update.callback_query.answer("❌ اول عضو کانال شو", show_alert=True)
+    # 🔒 Gate عضویت
+    if not await membership_gate(update, context):
         return
 
 
@@ -335,12 +366,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except:
                 pass
 
-            category = context.user_data.get("category")
-
-            if category:
-                await send_category(update, context, category)
-            else:
-                await query.message.reply_text("✅ عضویت تایید شد")
+            await query.message.reply_text("✅ عضویت تایید شد")
 
         else:
             await query.answer("❌ هنوز عضو نشدی", show_alert=True)
@@ -560,7 +586,8 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def text_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
-
+    if not await membership_gate(update, context):
+        return
 
 
     if context.user_data.get("action") == "waiting_media" and not context.user_data.get("media_category"):
