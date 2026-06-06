@@ -85,7 +85,7 @@ conn.commit()
 conn.commit()
 
 # ================= CONFIG =================
-TOKEN = "8913519612:AAGb9xRpB1ECQN0TEY9Qyg_teTPfq3cA-xA"
+TOKEN = "8913519612:AAGeqo4PRcSOFPwkbqnp6DEfzQUzWtnL7qQ"
 
 # ==========================================
 
