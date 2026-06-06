@@ -102,8 +102,7 @@ async def check_membership(bot, user_id):
 
     channels = await get_active_channels()
 
-    if not channels:
-        return True
+    print("CHANNELS =", channels)
 
     for channel in channels:
         try:
@@ -111,11 +110,12 @@ async def check_membership(bot, user_id):
 
             print(f"CHECK {channel} -> {member.status}")
 
-            if member.status not in ["member", "administrator", "creator"]:
+            # ❗ فقط این دو حالت یعنی عضو نیست
+            if member.status in ["left", "kicked"]:
                 return False
 
         except Exception as e:
-            print(f"CHANNEL ERROR {channel}: {e}")
+            print(f"ERROR {channel}: {e}")
             return False
 
     return True
