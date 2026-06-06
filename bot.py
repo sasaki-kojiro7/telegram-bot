@@ -223,7 +223,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         # 📁 اگر دسته بود
         if code.startswith("cat_"):
+            user_id = update.effective_user.id
 
+            ok = await check_membership(context.bot, user_id)
+
+            if not ok:
+                await send_join_gate(update, context)
+                return
             cursor.execute(
                 "SELECT file_id, type FROM media WHERE category = ?",
                 (code,)
