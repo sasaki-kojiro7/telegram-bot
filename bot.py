@@ -222,11 +222,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 🔥 اگر /start cat_1 یا هر لینک دسته بود
     if len(parts) > 1:
+
         code = parts[1].strip()
 
         if code.startswith("cat_"):
+            user_id = update.effective_user.id
 
-            ok = await check_membership(context.bot, update.effective_user.id)
+            ok = await check_membership(context.bot, user_id)
 
             if not ok:
                 await send_join_gate(update, context)
@@ -234,6 +236,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             await send_category(update, context, code)
             return
+
+
 
         else:
             context.user_data["category"] = code
@@ -375,12 +379,15 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except:
                 pass
 
+            await query.message.reply_text("✅ عضویت تایید شد")
+
+            # 👇 اینو اضافه کن
             category = context.user_data.get("category")
 
             if category:
                 await send_category(update, context, category)
             else:
-                await query.message.reply_text("✅ عضویت تایید شد (ولی دسته‌ای انتخاب نشده)")
+                await query.message.reply_text("❌ دسته‌ای انتخاب نشده")
 
         else:
             await query.answer("❌ هنوز عضو نشدی", show_alert=True)
