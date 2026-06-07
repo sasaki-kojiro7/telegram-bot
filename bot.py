@@ -222,17 +222,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     # 🔥 اگر /start cat_1 یا هر لینک دسته بود
     if len(parts) > 1:
-
         code = parts[1].strip()
 
-        # 📁 دسته
         if code.startswith("cat_"):
 
-            ok = await check_membership(context.bot, user_id)
+            ok = await check_membership(context.bot, update.effective_user.id)
 
             if not ok:
                 await send_join_gate(update, context)
                 return
+
+            await send_category(update, context, code)
+            return
+
+        else:
+            context.user_data["category"] = code
 
             cursor.execute(
                 "SELECT file_id, type FROM media WHERE category = ?",
@@ -376,7 +380,7 @@ async def button(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if category:
                 await send_category(update, context, category)
             else:
-                await query.message.reply_text("✅ عضویت تایید شد")
+                await query.message.reply_text("✅ عضویت تایید شد (ولی دسته‌ای انتخاب نشده)")
 
         else:
             await query.answer("❌ هنوز عضو نشدی", show_alert=True)
