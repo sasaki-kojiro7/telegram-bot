@@ -231,10 +231,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ok = await check_membership(context.bot, user_id)
 
             if not ok:
+                context.user_data["category"] = code
                 await send_join_gate(update, context)
                 return
 
-            # ❌ دیگه category ذخیره نکن
             await send_category(update, context, code)
             return
 
