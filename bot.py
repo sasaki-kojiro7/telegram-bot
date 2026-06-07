@@ -220,13 +220,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
     conn.commit()
 
-    # 🔥 اگر /start cat_1 یا هر لینک دسته بود
+    # 🔥 اگر /start cat_1 یا لینک دسته بود
     if len(parts) > 1:
 
         code = parts[1].strip()
 
+        # 📁 دسته واقعی
         if code.startswith("cat_"):
-            user_id = update.effective_user.id
 
             ok = await check_membership(context.bot, user_id)
 
@@ -234,68 +234,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await send_join_gate(update, context)
                 return
 
+            # 🚀 مستقیم ارسال فایل‌ها (بدون category اضافی)
             await send_category(update, context, code)
             return
 
-
-
-        else:
-            context.user_data["category"] = code
-
-            cursor.execute(
-                "SELECT file_id, type FROM media WHERE category = ?",
-                (code,)
-            )
-            files = cursor.fetchall()
-
-            if not files:
-                await update.message.reply_text("❌ این دسته خالیه")
-                return
-
-            media_group = []
-
-            for file_id, ftype in files:
-                if ftype == "photo":
-                    media_group.append(InputMediaPhoto(file_id))
-                elif ftype == "video":
-                    media_group.append(InputMediaVideo(file_id))
-
-            sent_messages = []
-
-            for i in range(0, len(media_group), 10):
-                msgs = await context.bot.send_media_group(
-                    chat_id=update.effective_chat.id,
-                    media=media_group[i:i+10]
-                )
-                sent_messages.extend(msgs)
-
-            warn = await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text="⚠️ فایل‌ها تا ۱۵ ثانیه دیگر حذف می‌شوند"
-            )
-
-            await asyncio.sleep(15)
-
-            for msg in sent_messages:
-                try:
-                    await context.bot.delete_message(
-                        chat_id=update.effective_chat.id,
-                        message_id=msg.message_id
-                    )
-                except:
-                    pass
-
-            try:
-                await warn.delete()
-            except:
-                pass
-
-            return
-
-        # ❌ اگر چیز دیگه بود
+        # 🧠 اگر چیز دیگه بود (مثلاً سیستم قبلی یا دعوت)
         context.user_data["category"] = code
 
-    # 🧠 منو اصلی
+        ok = await check_membership(context.bot, user_id)
+
+        if not ok:
+            await send_join_gate(update, context)
+            return
+
+        await update.message.reply_text("✅ لینک معتبره ولی چیزی برای نمایش نیست")
+        return
+
+    # 🧠 منوی اصلی
     ok = await check_membership(context.bot, user_id)
 
     if not ok:
@@ -314,7 +269,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     await update.message.reply_text(
-        "🎬 خوش اومدی!",
+        "🎬 خوش اومدی!\n\nیکی از گزینه‌ها رو انتخاب کن:",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
