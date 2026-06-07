@@ -212,25 +212,28 @@ async def get_active_channels():
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["category"] = code
 
     text = update.message.text or ""
     parts = text.split()
 
-    # 🔥 لینک /start cat_1
+    user_id = update.effective_user.id
+    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
+    conn.commit()
+
+    # 🔥 اگر /start cat_1 یا هر لینک دسته بود
     if len(parts) > 1:
 
         code = parts[1].strip()
 
-        # 📁 اگر دسته بود
+        # 📁 دسته
         if code.startswith("cat_"):
-            user_id = update.effective_user.id
 
             ok = await check_membership(context.bot, user_id)
 
             if not ok:
                 await send_join_gate(update, context)
                 return
+
             cursor.execute(
                 "SELECT file_id, type FROM media WHERE category = ?",
                 (code,)
@@ -251,13 +254,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             sent_messages = []
 
-            if media_group:
-                for i in range(0, len(media_group), 10):
-                    msgs = await context.bot.send_media_group(
-                        chat_id=update.effective_chat.id,
-                        media=media_group[i:i+10]
-                    )
-                    sent_messages.extend(msgs)
+            for i in range(0, len(media_group), 10):
+                msgs = await context.bot.send_media_group(
+                    chat_id=update.effective_chat.id,
+                    media=media_group[i:i+10]
+                )
+                sent_messages.extend(msgs)
 
             warn = await context.bot.send_message(
                 chat_id=update.effective_chat.id,
@@ -282,32 +284,29 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
             return
 
-        # 🔒 اگر چیز دیگه بود (مثل سیستم قبلی)
-       
-    # 🔒 چک عضویت
-    user_id = update.effective_user.id
-    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)",(user_id,))
-    conn.commit()
+        # ❌ اگر چیز دیگه بود
+        context.user_data["category"] = code
+
+    # 🧠 منو اصلی
     ok = await check_membership(context.bot, user_id)
 
     if not ok:
         await send_join_gate(update, context)
         return
 
-    # 🎛 منوی اصلی
     keyboard = [
         [
             InlineKeyboardButton("📷 تصاویر", callback_data="photos"),
             InlineKeyboardButton("🎥 ویدیو", callback_data="video")
         ],
         [
-            InlineKeyboardButton("📢 عضویت در کانال‌ها", callback_data="join"),
+            InlineKeyboardButton("📢 عضویت", callback_data="join"),
             InlineKeyboardButton("✅ بررسی عضویت", callback_data="check_membership")
         ]
     ]
 
     await update.message.reply_text(
-        "🎬 خوش اومدی!\n\nیکی از گزینه‌ها رو انتخاب کن:",
+        "🎬 خوش اومدی!",
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
 
