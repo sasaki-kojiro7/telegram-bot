@@ -220,12 +220,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (user_id,))
     conn.commit()
 
-    # 🔥 اگر /start cat_1 یا لینک دسته بود
+    # 🔥 اگر لینک /start cat_1 یا چیزی داشت
     if len(parts) > 1:
 
         code = parts[1].strip()
 
-        # 📁 دسته واقعی
+        # 📁 اگر دسته بود
         if code.startswith("cat_"):
 
             ok = await check_membership(context.bot, user_id)
@@ -234,20 +234,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await send_join_gate(update, context)
                 return
 
-            # 🚀 مستقیم ارسال فایل‌ها (بدون category اضافی)
+            # ❌ دیگه category ذخیره نکن
             await send_category(update, context, code)
             return
 
-        # 🧠 اگر چیز دیگه بود (مثلاً سیستم قبلی یا دعوت)
-        context.user_data["category"] = code
-
+        # ❌ چیز غیر دسته → فقط پیام ساده
         ok = await check_membership(context.bot, user_id)
 
         if not ok:
             await send_join_gate(update, context)
             return
 
-        await update.message.reply_text("✅ لینک معتبره ولی چیزی برای نمایش نیست")
+        await update.message.reply_text("⚠️ این لینک معتبره ولی دسته‌ای برای نمایش نداره")
         return
 
     # 🧠 منوی اصلی
